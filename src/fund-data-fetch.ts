@@ -202,7 +202,7 @@ export const calcPremium = (fundData: FundData[], constFund: ConstFund)=>{
     if(constFund.finalVal) {
       item.finalPremium = Number(((constFund.realTimeVal - constFund.finalVal) / constFund.realTimeVal* 100).toFixed(3))
 
-      item.error = item.finalPremium - item.estimatedPremium
+      item.error = Number((item.finalPremium - item.estimatedPremium).toFixed(3))
     }
   })
 }
@@ -214,14 +214,14 @@ export const calcPremium = (fundData: FundData[], constFund: ConstFund)=>{
 
 (async ()=>{
   const fnList = [
-    getJisiluFund,
     getHowBuyFund,
     getEastmoneyFund,
+    getJisiluFund,
     getJJMMFund,
     getIFund,
   ]
   const dataList = await Promise.all(
-    fnList.map(fn => fn(162605))
+    fnList.map(fn => fn(163415			 ))
   )  
   
   
