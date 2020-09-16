@@ -96,7 +96,7 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
   }
   
   const curDate = dateFormat(dateTime, `yyyy-MM-dd`)
-  
+  const  hour = Number(dateFormat(dateTime, `h`))
   
   const fundData:FundData = {
     from: '集思录',
@@ -109,7 +109,7 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
     estimatedVal: Number(obj.estimate_value),
     
     // 净值是今天的净值 ？，否则是昨天的净值
-    finalVal: obj.nav_dt === curDate ?   Number(obj.fund_nav) : undefined
+    finalVal: (obj.nav_dt === curDate || hour < 9) ?   Number(obj.fund_nav) : undefined
   }
 
 
@@ -181,9 +181,30 @@ export const getJJMMFund = async (fundCode: string|number, dateTime: number = Da
 }
 
 
+/**
+ * @deprecated 新浪财经误差太大，太离谱，弃用
+ */
+// 新浪财经： http://finance.sina.com.cn/fund/quotes/161005/bc.shtml
+export const getSinaFund = async (fundCode: string|number, dateTime: number = Date.now())=>{
+  const {data} =  await axios.get(`https://app.xincai.com/fund/api/jsonp.json/varabc=/XinCaiFundService.getFundYuCeNav?symbol=${fundCode}&___qn=3`)
+  
+  let estimatedVal 
+  try {
+    estimatedVal = JSON.parse(data.slice(8,-2)).detail.split(',').pop()
+  } catch(e) {
+    throw new Error('新浪财经数据解析错误')
+  }
+   
+  const fundData:FundData = {
+    from: '新浪财经',
+    estimatedVal: Number(estimatedVal)
+  }
+
+  return fundData
+}
 
 
-
+// 获取不变的基金数据
 export const getConstFundData = (fundData: FundData[]):ConstFund =>{
   return fundData.reduce((result, cur)=>{
     return {
@@ -248,6 +269,7 @@ export const compareFundPremium = async (fundCode: string)=>{
     getJisiluFund,
     getJJMMFund,
     getIFund,
+    // getSinaFund
   ]
   const dataList = await Promise.all(
     fnList.map(fn => fn(fundCode))
