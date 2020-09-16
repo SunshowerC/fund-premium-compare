@@ -1,9 +1,10 @@
 import axios from 'axios'
 import fetch from 'node-fetch'
 import {JSDOM} from 'jsdom'
+import { dateFormat } from './utils'
 
 
-interface FundData {
+export interface FundData {
   // 来源
   from: string
   fundName?: string 
@@ -32,12 +33,17 @@ interface FundData {
   // 估算溢价
   estimatedPremium?: number
 
-  
+  // 溢价套利
+  premiumProfit?: [string, number]
 }
 
 type ConstFund = Required<Pick<FundData, 'fundCode'|'fundName'|'date'|'unitVal'|'realTimeVal'|'finalVal'>>
 
-const COST_RATE = 0.16
+const PREMIUM_COST_RATE = 0.16 // 卖出+申购成本：0.16
+const DISCOUNT_COST_RATE = 0.51 // 买入+赎回成本：0.51
+
+// 误差区间，一般认为误差不会超过 0.1，溢价超过 COST_RATE + ERROR_GAP 即有价值套利
+const ERROR_GAP = 0.1 
 
 // 天天基金网
 export const getEastmoneyFund = async (fundCode: string|number, dateTime: number = Date.now())=>{
@@ -88,18 +94,22 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
     console.log(obj)
     throw new Error('集思录 json 数据为空')
   }
-    
+  
+  const curDate = dateFormat(dateTime, `yyyy-MM-dd`)
+  
+  
   const fundData:FundData = {
     from: '集思录',
-    date: obj.nav_dt,
+    date: curDate,
     fundName: obj.fund_nm,
     fundCode: obj.fund_id,
     // unitVal: Number(obj.dwjz),
     realTimeVal: Number(obj.price),
 
     estimatedVal: Number(obj.estimate_value),
-     
-    finalVal: Number(obj.fund_nav)
+    
+    // 净值是今天的净值 ？，否则是昨天的净值
+    finalVal: obj.nav_dt === curDate ?   Number(obj.fund_nav) : undefined
   }
 
 
@@ -115,7 +125,7 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
   if(!dom) {
     throw new Error('好买基金网数据解析错误')
   }
-  const estimatedVal = dom.window.document.querySelector(`.con_value_up`)!.textContent
+  const estimatedVal = dom.window.document.querySelector(`.con_value`)!.textContent
 
    
 
@@ -197,6 +207,25 @@ export const calcPremium = (fundData: FundData[], constFund: ConstFund)=>{
     Object.assign(item, constFund)
     item.estimatedPremium = Number(((constFund.realTimeVal - item.estimatedVal) / constFund.realTimeVal * 100).toFixed(3))
 
+    if(item.estimatedPremium - PREMIUM_COST_RATE - ERROR_GAP > 0) {
+      item.premiumProfit = [
+        `溢价`,
+        Number((item.estimatedPremium - PREMIUM_COST_RATE).toFixed(3))
+      ]
+    } else if(  - item.estimatedPremium - DISCOUNT_COST_RATE - ERROR_GAP > 0) {
+      item.premiumProfit = [
+        `折价`,
+        Number((- item.estimatedPremium - DISCOUNT_COST_RATE ).toFixed(3))
+      ]
+    } else {
+      item.premiumProfit = [
+        `无`,
+        NaN
+      ]
+    }
+
+    
+
     item.estimatedIncreaseRate = Number(((item.estimatedVal - constFund.unitVal) / constFund.unitVal * 100).toFixed(3))
     
     if(constFund.finalVal) {
@@ -212,7 +241,7 @@ export const calcPremium = (fundData: FundData[], constFund: ConstFund)=>{
 
 
 
-(async ()=>{
+export const compareFundPremium = async (fundCode: string)=>{
   const fnList = [
     getHowBuyFund,
     getEastmoneyFund,
@@ -221,32 +250,16 @@ export const calcPremium = (fundData: FundData[], constFund: ConstFund)=>{
     getIFund,
   ]
   const dataList = await Promise.all(
-    fnList.map(fn => fn(163415			 ))
+    fnList.map(fn => fn(fundCode))
   )  
   
   
   const constFund = getConstFundData(dataList)
   calcPremium(dataList, constFund)
-  // console.log('res', dataList)
-  console.log(dataList[0].date,dataList[0].fundName,dataList[0].fundCode )
+
+  return dataList
+
   
-  dataList.unshift({
-    from: '来源',
-    error: '误差' as any,
-    estimatedVal: '估值' as any,
-    estimatedPremium: '估值溢价率' as any,
-    estimatedIncreaseRate: '估算涨幅' as any,
-    finalPremium: '最终溢价率' as any,
-  })
-
-  console.table(dataList, [
-    'from',
-    'finalPremium',
-    `estimatedIncreaseRate`,
-    'estimatedPremium',
-    'error'
-  ])
-
   // const formatList = dataList.map(item => {
   //   return {
   //   '------来源------': item.from,
@@ -260,6 +273,6 @@ export const calcPremium = (fundData: FundData[], constFund: ConstFund)=>{
 
   // console.table(formatList)
 
-})()
+}
 
 
