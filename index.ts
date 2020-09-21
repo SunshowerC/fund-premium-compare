@@ -40,7 +40,7 @@ const echoReport = (reportList: FundData[][])=>{
 }
 
 async function main() {
-  const fundCodeList = [
+  const fundCodeList = fundCode ? [fundCode] : [
     '161005',
     '162605',
     '163402',

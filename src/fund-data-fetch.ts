@@ -122,12 +122,16 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
 export const getHowBuyFund = async (fundCode: string|number, dateTime: number = Date.now())=>{
   const {data} =  await axios.get(`https://www.howbuy.com/fund/ajax/gmfund/valuation/valuationnav.htm?jjdm=${fundCode}`)
   const dom = new JSDOM(data)
+  
+  
+
   if(!dom) {
     throw new Error('好买基金网数据解析错误')
-  }
-  const estimatedVal = dom.window.document.querySelector(`.con_value`)!.textContent
+  } 
 
-   
+  const valDom = dom.window.document.querySelector(`.con_value`)
+  
+  const estimatedVal = valDom ? valDom.textContent : '暂无估值'
 
   const fundData:FundData = {
     from: '好买基金网',
