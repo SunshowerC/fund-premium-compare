@@ -30,11 +30,11 @@ const echoReport = (reportList: FundData[][])=>{
     
     console.table(dataList, [
       'from',
-      `estimatedIncreaseRate`,
       'estimatedPremium',
       `premiumProfit`,
       'finalPremium',
-      'error'
+      'error',
+      `estimatedIncreaseRate`,
     ])
   })
 }
@@ -56,7 +56,7 @@ async function main() {
   const shouldDoReport = allReportList.filter(dataList => {
     const avaiableCount = dataList.filter(item => item.premiumProfit![0] !== '无').length
     // 适合操作的报告大于 n 时，认为适合操作
-    return avaiableCount >= 4
+    return avaiableCount >= 0
   })
   
 

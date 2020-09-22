@@ -109,7 +109,7 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
     estimatedVal: Number(obj.estimate_value),
     
     // 净值是今天的净值 ？，否则是昨天的净值
-    finalVal: (obj.nav_dt === curDate || hour < 9) ?   Number(obj.fund_nav) : undefined
+    // finalVal: (obj.nav_dt === curDate || hour < 9) ?   Number(obj.fund_nav) : undefined
   }
 
 
@@ -130,11 +130,29 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
   } 
 
   const valDom = dom.window.document.querySelector(`.con_value`)
-  
+
+  const {data: domData} =  await axios.get(`https://www.howbuy.com/fund/${fundCode}/`)
+  // 净值 dom
+  const finalValDom = new JSDOM(domData)
+
+  if(!finalValDom) {
+    throw new Error('好买基金网数据解析错误')
+  } 
   const estimatedVal = valDom ? valDom.textContent : '暂无估值'
+  
+  const finalVal = finalValDom.window.document.querySelector("body  div.shouyi-b.shouyi-l.b1 .dRate")?.textContent
+
+  const curDate = dateFormat(dateTime, `MM-dd`)
+  const  hour = Number(dateFormat(dateTime, `h`))
+  
+  // 基金净值价格
+  const matchResult = finalValDom.window.document.querySelector("body   div.shouyi-b.shouyi-l.b1 > div.b-0")?.textContent?.match(/\d+-\d+/)
+
+  const fundFinalValDate = matchResult ? matchResult[0] : null
 
   const fundData:FundData = {
     from: '好买基金网',
+    finalVal: (fundFinalValDate === curDate || hour < 9) ?   Number(finalVal) : undefined,
     estimatedVal: Number(estimatedVal)
   }
 
@@ -272,7 +290,7 @@ export const compareFundPremium = async (fundCode: string)=>{
     getEastmoneyFund,
     getJisiluFund,
     getJJMMFund,
-    getIFund,
+    // getIFund,
     // getSinaFund
   ]
   const dataList = await Promise.all(
