@@ -143,7 +143,7 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
   const finalVal = finalValDom.window.document.querySelector("body  div.shouyi-b.shouyi-l.b1 .dRate")?.textContent
 
   const curDate = dateFormat(dateTime, `MM-dd`)
-  const  hour = Number(dateFormat(dateTime, `h`))
+  const  hour = Number(dateFormat(dateTime, `H`))
   
   // 基金净值价格
   const matchResult = finalValDom.window.document.querySelector("body   div.shouyi-b.shouyi-l.b1 > div.b-0")?.textContent?.match(/\d+-\d+/)

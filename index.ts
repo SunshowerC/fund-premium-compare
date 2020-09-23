@@ -11,7 +11,7 @@ import { compareFundPremium, FundData } from "./src/fund-data-fetch";
 
 
 const fundCode:string = process.env.code!
-
+const MAX_NUM = process.env.max ?? 3
 
 const echoReport = (reportList: FundData[][])=>{
   reportList.forEach(dataList => {
@@ -30,11 +30,11 @@ const echoReport = (reportList: FundData[][])=>{
     
     console.table(dataList, [
       'from',
-      'estimatedPremium',
+      `estimatedIncreaseRate`,
       `premiumProfit`,
+      'estimatedPremium',
       'finalPremium',
       'error',
-      `estimatedIncreaseRate`,
     ])
   })
 }
@@ -56,7 +56,7 @@ async function main() {
   const shouldDoReport = allReportList.filter(dataList => {
     const avaiableCount = dataList.filter(item => item.premiumProfit![0] !== '无').length
     // 适合操作的报告大于 n 时，认为适合操作
-    return avaiableCount >= 0
+    return avaiableCount >= MAX_NUM
   })
   
 
