@@ -146,9 +146,8 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
   const  hour = Number(dateFormat(dateTime, `H`))
   
   // 基金净值价格
-  const matchResult = finalValDom.window.document.querySelector("body   div.shouyi-b.shouyi-l.b1 > div.b-0")?.textContent?.match(/\d+-\d+/)
+  const fundFinalValDate = finalValDom.window.document.querySelector("body   div.shouyi-b.shouyi-l.b1 > div.b-0")?.textContent?.match(/\d+-\d+/)?.[0]
 
-  const fundFinalValDate = matchResult ? matchResult[0] : null
 
   const fundData:FundData = {
     from: '好买基金网',
