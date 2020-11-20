@@ -5,6 +5,7 @@
  * 兴全商业模式混合   163415
  * 万家行业优选混合   161903
  * 广发小盘成长混合   162703
+ * 兴全合宜混合(LOF) 163417
  */
 
 import { compareFundPremium, FundData } from "./src/fund-data-fetch";
@@ -43,10 +44,11 @@ async function main() {
   const fundCodeList = fundCode ? [fundCode] : [
     '161005',
     '162605',
-    '163402',
+    // '163402',
     '163415',
     '161903',
-    '162703',
+    // '162703',
+    '163417',
   ]
 
   const allFundReport = fundCodeList.map(compareFundPremium)
@@ -62,6 +64,8 @@ async function main() {
 
   if(shouldDoReport.length === 0) {
     echoReport(allReportList)
+    console.log('\n-------无操作建议-------\n')
+    console.log('\n-------无操作建议-------\n')
     console.log('\n-------无操作建议-------\n')
   } else {
     echoReport(shouldDoReport)
