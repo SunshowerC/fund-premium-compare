@@ -25,6 +25,7 @@ const echoReport = (reportList: FundData[][])=>{
       estimatedVal: '估值' as any,
       estimatedPremium: '估值溢价率' as any,
       estimatedIncreaseRate: '估算涨幅' as any,
+      finalIncrease: '实际涨幅' as any,
       finalPremium: '最终溢价率' as any,
       premiumProfit: `套利建议` as any
     })
@@ -32,6 +33,7 @@ const echoReport = (reportList: FundData[][])=>{
     console.table(dataList, [
       'from',
       `estimatedIncreaseRate`,
+      `finalIncrease`,
       `premiumProfit`,
       'estimatedPremium',
       'finalPremium',

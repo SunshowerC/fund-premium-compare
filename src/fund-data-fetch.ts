@@ -19,6 +19,9 @@ export interface FundData {
 
   // 收盘净值, 只有收盘时间才有
   finalVal?: number
+
+  
+
   // 最终溢价率
   finalPremium?: number
 
@@ -27,6 +30,10 @@ export interface FundData {
   estimatedVal: number
   // 估算涨幅
   estimatedIncreaseRate?: number
+
+  // 结果出来后的涨幅
+  finalIncrease?: number
+
   // 误差
   error?: number 
 
@@ -37,7 +44,7 @@ export interface FundData {
   premiumProfit?: [string, number]
 }
 
-type ConstFund = Required<Pick<FundData, 'fundCode'|'fundName'|'date'|'unitVal'|'realTimeVal'|'finalVal'>>
+type ConstFund = Required<Pick<FundData, 'fundCode'|'fundName'|'date'|'unitVal'|'realTimeVal'|'finalVal'|'finalIncrease'>>
 
 const PREMIUM_COST_RATE = 0.16 // 卖出+申购成本：0.16
 const DISCOUNT_COST_RATE = 0.51 // 买入+赎回成本：0.51
@@ -95,8 +102,13 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
     throw new Error('集思录 json 数据为空')
   }
   
-  const curDate = dateFormat(dateTime, `yyyy-MM-dd`)
+  let curDate = dateFormat(dateTime, `yyyy-MM-dd`)
   const  hour = Number(dateFormat(dateTime, `h`))
+
+  // 这是昨天的数据
+  if(hour > 0 && hour < 9) {
+    curDate = dateFormat(new Date(dateTime - 24 * 60 * 60 * 1000), `yyyy-MM-dd`)
+  }
   
   const fundData:FundData = {
     from: '集思录',
@@ -228,15 +240,22 @@ export const getSinaFund = async (fundCode: string|number, dateTime: number = Da
 // 获取不变的基金数据
 export const getConstFundData = (fundData: FundData[]):ConstFund =>{
   return fundData.reduce((result, cur)=>{
+    let finalIncrease = result.finalIncrease ? Number(result.finalIncrease.toFixed(3)) : undefined
+    if(result.finalVal && result.unitVal && !finalIncrease) {
+      finalIncrease = (result.finalVal - result.unitVal)/result.unitVal * 100
+    }
+    
+
     return {
       fundName: result.fundName || cur.fundName,
       fundCode: result.fundCode ||  cur.fundCode,
       date: result.date ||  cur.date,
       unitVal: result.unitVal ||  cur.unitVal,
       finalVal: result.finalVal ||  cur.finalVal,
+      finalIncrease,
       realTimeVal: result.realTimeVal ||  cur.realTimeVal,
-    }
-  }, {} as any) as any
+    } as ConstFund
+  }, {} as ConstFund) as any
 }
 
 /**
@@ -289,8 +308,8 @@ export const compareFundPremium = async (fundCode: string)=>{
     getEastmoneyFund,
     getJisiluFund,
     getJJMMFund,
-    // getIFund,
-    // getSinaFund
+    getIFund,
+    getSinaFund
   ]
   const dataList = await Promise.all(
     fnList.map(fn => fn(fundCode))
