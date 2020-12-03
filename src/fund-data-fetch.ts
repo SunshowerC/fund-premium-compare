@@ -46,8 +46,8 @@ export interface FundData {
 
 type ConstFund = Required<Pick<FundData, 'fundCode'|'fundName'|'date'|'unitVal'|'realTimeVal'|'finalVal'|'finalIncrease'>>
 
-const PREMIUM_COST_RATE = 0.16 // 卖出+申购成本：0.16
-const DISCOUNT_COST_RATE = 0.51 // 买入+赎回成本：0.51
+export const PREMIUM_COST_RATE = 0.16 // 卖出+申购成本：0.16
+export const DISCOUNT_COST_RATE = 0.51 // 买入+赎回成本：0.51
 
 // 误差区间，一般认为误差不会超过 0.1，溢价超过 COST_RATE + ERROR_GAP 即有价值套利
 const ERROR_GAP = 0.1 
