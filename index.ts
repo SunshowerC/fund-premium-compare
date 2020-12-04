@@ -16,45 +16,55 @@ import { save } from "./src/orm";
 const fundCode:string = process.env.code!
 const MAX_NUM = process.env.max ?? 3
 
+
+const saveData = (dataList: FundData[])=>{
+  // 如果最终涨幅与最终溢价率出来了
+  if(dataList[0].finalIncrease && dataList[0].finalPremium) {
+    const saveList: Omit<FundPredictEntity, 'id'>[] = dataList.map((item: any) => {
+      let success = 0
+
+      // if(item.fundName === '景顺长城鼎益混合(LOF)' && item.from === '好买基金网') {
+      //   console.log('debug')
+      // }
+
+      if(item.premiumProfit![0] === '溢价' && 
+        item.finalPremium - PREMIUM_COST_RATE > 0) {
+        success = 1
+      } else if(item.premiumProfit![0] === '折价' && 
+        - item.finalPremium - DISCOUNT_COST_RATE > 0) {
+        success = 1
+      } else if(
+        // 如果无操作正确，那么最终溢价率应该在 -0.51 ~ 0.16 之间
+        item.premiumProfit![0] === '无' &&
+        (item.finalPremium  <  PREMIUM_COST_RATE && item.finalPremium   > -DISCOUNT_COST_RATE)
+      ){
+        success = 1
+      } 
+
+      return {
+        fundName: item.fundName,
+        fundCode: item.fundCode,
+        predictDate: item.date,
+        predictCompany: item.from,
+        predictIncrease: item.estimatedIncreaseRate,
+        finalIncrease: item.finalIncrease,
+        predictPremium: item.estimatedPremium,
+        finalPremium: item.finalPremium,
+        error: item.error,
+        success,
+      }
+    })
+
+    save(saveList)
+  }
+}
+
 const echoReport = (reportList: FundData[][])=>{
   reportList.forEach(dataList => {
     console.log('\n\n')
     console.log(dataList[0].date,dataList[0].fundName,dataList[0].fundCode )
 
-    // 如果最终涨幅与最终溢价率出来了
-    if(dataList[0].finalIncrease && dataList[0].finalPremium) {
-      const saveList: Omit<FundPredictEntity, 'id'>[] = dataList.map((item: any) => {
-        let success = 0
-
-        if(item.premiumProfit![0] === '溢价' && 
-          item.finalPremium - PREMIUM_COST_RATE > 0) {
-          success = 1
-        } else if(item.premiumProfit![0] === '折价' && 
-          - item.finalPremium - DISCOUNT_COST_RATE > 0) {
-          success = 1
-        } else if(
-          item.premiumProfit![0] === '无' &&
-          (item.finalPremium - PREMIUM_COST_RATE < 0 || - item.finalPremium - DISCOUNT_COST_RATE < 0)
-        ){
-          success = 1
-        } 
-
-        return {
-          fundName: item.fundName,
-          fundCode: item.fundCode,
-          predictDate: item.date,
-          predictCompany: item.from,
-          predictIncrease: item.estimatedIncreaseRate,
-          finalIncrease: item.finalIncrease,
-          predictPremium: item.estimatedPremium,
-          finalPremium: item.finalPremium,
-          error: item.error,
-          success,
-        }
-      })
-
-      save(saveList)
-    }
+    saveData(dataList)
     
     dataList.unshift({
       from: '来源',

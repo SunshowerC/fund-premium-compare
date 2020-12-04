@@ -106,7 +106,7 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
   const  hour = Number(dateFormat(dateTime, `h`))
 
   // 这是昨天的数据
-  if(hour > 0 && hour < 9) {
+  if(hour >= 0 && hour <= 9) {
     curDate = dateFormat(new Date(dateTime - 24 * 60 * 60 * 1000), `yyyy-MM-dd`)
   }
   
@@ -120,8 +120,8 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
 
     estimatedVal: Number(obj.estimate_value),
     
-    // 净值是今天的净值 ？，否则是昨天的净值
-    // finalVal: (obj.nav_dt === curDate || hour < 9) ?   Number(obj.fund_nav) : undefined
+    // 最终净值， TODO: 可能有问题？
+    finalVal: (obj.nav_dt === curDate ) ?   Number(obj.fund_nav) : undefined
   }
 
 
@@ -154,16 +154,20 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
   
   const finalVal = finalValDom.window.document.querySelector("body  div.shouyi-b.shouyi-l.b1 .dRate")?.textContent
 
-  const curDate = dateFormat(dateTime, `MM-dd`)
+  let curDate = dateFormat(dateTime, `MM-dd`)
   const  hour = Number(dateFormat(dateTime, `H`))
-  
+  // 这是昨天的数据
+  if(hour >= 0 && hour <= 9) {
+    curDate = dateFormat(new Date(dateTime - 24 * 60 * 60 * 1000), `MM-dd`)
+  }
+
   // 基金净值价格
   const fundFinalValDate = finalValDom.window.document.querySelector("body   div.shouyi-b.shouyi-l.b1 > div.b-0")?.textContent?.match(/\d+-\d+/)?.[0]
-
+  
 
   const fundData:FundData = {
     from: '好买基金网',
-    finalVal: (fundFinalValDate === curDate || hour < 9) ?   Number(finalVal) : undefined,
+    finalVal: (fundFinalValDate === curDate ) ?   Number(finalVal) : undefined,
     estimatedVal: Number(estimatedVal)
   }
 

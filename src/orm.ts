@@ -35,7 +35,9 @@ const getCurRepo = async()=>{
 export const save = async(list: Omit<FundPredictEntity, 'id'>[])=>{
   const repo = await getCurRepo()
   
-  const result = await repo.save(list)
+  const result = await repo.save(list).catch(e => {
+    console.log('ignore duplicated')
+  })
   
   // console.log('save result', result)
 
