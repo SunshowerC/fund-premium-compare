@@ -1,5 +1,10 @@
 import { Entity, Column, Index, ConnectionOptions, PrimaryColumn, createConnection } from 'typeorm'
 
+export enum PredictStatus {
+  FAILED = 0,
+  SUCCESS = 1,
+}
+
 @Entity({
   name: `fund_predict_tab`
 })
@@ -74,4 +79,15 @@ export default class FundPredictEntity {
   })
   success!: number
 
+  @Column({
+    name: 'create_date',
+    type: 'datetime',
+  })
+  createDate!: Date
+
+  @Column({
+    name: 'update_date',
+    type: 'datetime',
+  })
+  updateDate!: Date
 }

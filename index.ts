@@ -1,3 +1,4 @@
+import { find } from "lodash";
 import FundPredictEntity from "./src/entities/fund.entity";
 /**
  * 富国天惠成长混合   161005
@@ -10,7 +11,7 @@ import FundPredictEntity from "./src/entities/fund.entity";
  */
 
 import { compareFundPremium, DISCOUNT_COST_RATE, FundData, PREMIUM_COST_RATE } from "./src/fund-data-fetch";
-import { save } from "./src/orm";
+import { AggrResult, findFundData, save } from "./src/services";
 
 
 const fundCode:string = process.env.code!
@@ -20,7 +21,7 @@ const MAX_NUM = process.env.max ?? 3
 const saveData = (dataList: FundData[])=>{
   // 如果最终涨幅与最终溢价率出来了
   if(dataList[0].finalIncrease && dataList[0].finalPremium) {
-    const saveList: Omit<FundPredictEntity, 'id'>[] = dataList.map((item: any) => {
+    const saveList: Omit<FundPredictEntity, 'id'|'createDate'|'updateDate'>[] = dataList.map((item: any) => {
       let success = 0
 
       // if(item.fundName === '景顺长城鼎益混合(LOF)' && item.from === '好买基金网') {
@@ -125,6 +126,15 @@ async function main() {
 
 }
 
+async function analyse() {
+  const list = await findFundData()
+  const aggr = new AggrResult(list)
 
+  aggr.getAvgError()
+  aggr.getPredictSuccessRate()
+  aggr.premiumSuccessRate(4)
+}
+
+// analyse()
 
 main()

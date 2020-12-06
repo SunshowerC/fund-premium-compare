@@ -45,3 +45,12 @@ export const dateFormat = (dateInput, format = 'yyyy-MM-dd HH:mm:ss') => {
 
   return format.replace(reg, (match) => dateMap[match])
 }
+
+
+export const toFixed = (num: number, len: number = 3):number=>{
+  // const pow = Math.pow(10, len)
+
+  // return Number((Math.round(num * pow)/pow).toFixed(len))
+
+  return Number((num.toFixed(len)))
+}

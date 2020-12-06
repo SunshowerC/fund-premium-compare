@@ -22,12 +22,14 @@
   "dependencies": {
     "axios": "^0.20.0",
     "jsdom": "^16.4.0",
+    "lodash": "^4.17.20",
     "mysql": "^2.18.1",
     "node-fetch": "^2.6.1",
     "typeorm": "^0.2.29"
   },
   "devDependencies": {
     "@types/jsdom": "^16.2.4",
+    "@types/lodash": "^4.14.165",
     "@types/node-fetch": "^2.5.7",
     "ts-node": "^9.0.0",
     "typescript": "^4.0.2"

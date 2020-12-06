@@ -11,6 +11,9 @@ CREATE TABLE fund_predict_tab  (
   `final_premium` float(4) NOT NULL COMMENT '最终溢价率',
   `error` float(4) NOT NULL COMMENT '误差',
   `success` tinyint(1) NOT NULL COMMENT '是否预测成功; 成功1，失败0；',
+  `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
 	 PRIMARY KEY (`id`),
    UNIQUE KEY `uni_code_company_date` (`fund_code`, `predict_company`, `predict_date`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
