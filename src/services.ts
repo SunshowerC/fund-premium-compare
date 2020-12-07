@@ -202,25 +202,25 @@ export class AggrResult {
   }
 
 
-  private isPremium(num: number) {
-    return num > PREMIUM_COST_RATE+0.1
-  }
-
-  private isDiscount(num: number) {
-    return num < -DISCOUNT_COST_RATE-0.1
-  }
-
 
   /**
    * 基金被套利成功概率 = 当天有 4 个源以上预测 溢价/折价 ，且最终结果符合的次数，除以 当天有 4 个源以上预测 溢价/折价的总次数
    */
-  premiumSuccessRate(times: number) {
+  premiumSuccessRate(times: number, durationDays?: number) {
 
     const fundSucMap:Record<string, {success:number, total: number, sucRate: number}> = {}
 
     Object.entries(this.groupFundDateMap)
     .forEach(([curKey,curList]) => {
       const [fundName] = curKey.split(',')
+
+      curList = curList.filter(item => {
+        if(!durationDays){
+          return true
+        } else {
+          return this.dateDiff(item.createDate, this.now) < durationDays
+        }
+      })
 
       fundSucMap[fundName] = fundSucMap[fundName] || {
         success: 0,
@@ -237,7 +237,7 @@ export class AggrResult {
     })
 
     Object.entries(fundSucMap).forEach(([fundName, val]) => {
-      fundSucMap[fundName].sucRate = val.success / val.total
+      fundSucMap[fundName].sucRate = toFixed(val.success / val.total) 
     })
     
     return fundSucMap
