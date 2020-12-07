@@ -64,23 +64,29 @@ const echoReport = async (reportList: FundData[][])=>{
   const list = await findFundData()
   const aggr = new AggrResult(list)
 
-  const avgError = aggr.getAvgError()
-  aggr.getPredictSuccessRate()
-  aggr.premiumSuccessRate(4)
+  const avgError = aggr.getAvgError(90)
+  const rateResult = aggr.getPredictSuccessRate(90)
+  const premiumRateMap = aggr.premiumSuccessRate(4)
 
   reportList.forEach(dataList => {
     console.log('\n\n')
     console.log(dataList[0].date,dataList[0].fundName,dataList[0].fundCode )
     const {positive, negative, times} = avgError[dataList[0].fundName!]
+    const {total, sucRate} = premiumRateMap[dataList[0].fundName!]
+
     console.log(`基金平均负值误差(${times[0]}次)为：${negative}`)
     console.log(`基金平均正值误差(${times[1]}次)为：${positive}`)
+    console.log(`基金总套利 ${total}次，成功率: ${sucRate*100}%`)
 
     saveData(dataList)
 
 
     dataList.forEach(item => {
       const {positive, negative, times} = avgError[`${item.from},${item.fundName}`];
-      (item as any).avgError = `负${times[0]},${negative} 正${times[1]},${positive}`
+      const predictSucRate = rateResult[`${item.from},${item.fundName}`];
+
+      (item as any).avgError = `负${times[0]},${negative} 正${times[1]},${positive}`;
+      (item as any).predictSucRate = predictSucRate
     })
     
     dataList.unshift({
@@ -93,14 +99,16 @@ const echoReport = async (reportList: FundData[][])=>{
       finalPremium: '最终溢价率' as any,
       premiumProfit: `套利建议` as any,
       avgError: `平均溢价误差` as any,
+      predictSucRate: `预测成功率` as any,
     } as any)
     
     console.table(dataList, [
       'from',
       `estimatedIncreaseRate`,
       'avgError',
+      `predictSucRate`,
       `premiumProfit`,
-      `finalIncrease`,
+      // `finalIncrease`,
       'estimatedPremium',
       'finalPremium',
       // 'error',
@@ -131,12 +139,12 @@ async function main() {
   
 
   if(shouldDoReport.length === 0) {
-    echoReport(allReportList)
+    await echoReport(allReportList)
     console.log('\n-------无操作建议-------\n')
     console.log('\n-------无操作建议-------\n')
     console.log('\n-------无操作建议-------\n')
   } else {
-    echoReport(shouldDoReport)
+    await echoReport(shouldDoReport)
 
     console.log('\n-------以上为本日操作建议-------\n')
   }
