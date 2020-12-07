@@ -39,6 +39,7 @@ export const save = async(list: Omit<FundPredictEntity, 'id'|'createDate'|'updat
   
   const result = await repo.save(list).catch(e => {
     console.log('ignore duplicated')
+    setTimeout(process.exit, 2000)
   })
   
   // console.log('save result', result)

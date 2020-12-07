@@ -85,7 +85,7 @@ const echoReport = async (reportList: FundData[][])=>{
       const {positive, negative, times} = avgError[`${item.from},${item.fundName}`];
       const predictSucRate = rateResult[`${item.from},${item.fundName}`];
 
-      (item as any).avgError = `负${times[0]},${negative} 正${times[1]},${positive}`;
+      (item as any).avgError = `${times[0]}负:${negative} ${times[1]}正:${positive}`;
       (item as any).predictSucRate = predictSucRate
     })
     
@@ -152,14 +152,6 @@ async function main() {
 
 }
 
-async function analyse() {
-  const list = await findFundData()
-  const aggr = new AggrResult(list)
-
-  aggr.getAvgError()
-  aggr.getPredictSuccessRate()
-  aggr.premiumSuccessRate(4)
-}
 
 // analyse()
 
