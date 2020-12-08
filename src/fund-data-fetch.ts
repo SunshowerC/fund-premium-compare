@@ -65,7 +65,7 @@ export const getEastmoneyFund = async (fundCode: string|number, dateTime: number
    
 
   const fundData:FundData = {
-    from: '天天基金网',
+    from: '天天基金',
     fundName: obj.name,
     fundCode: obj.fundcode,
     unitVal: Number(obj.dwjz),
@@ -111,7 +111,7 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
   }
   
   const fundData:FundData = {
-    from: '集思录',
+    from: '集思录网',
     date: curDate,
     fundName: obj.fund_nm,
     fundCode: obj.fund_id,
@@ -162,7 +162,7 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
 
 
   const fundData:FundData = {
-    from: '好买基金网',
+    from: '好买基金',
     finalVal: (fundFinalValDate === curDate || hour < 9) ?   Number(finalVal) : undefined,
     estimatedVal: Number(estimatedVal)
   }
@@ -184,7 +184,7 @@ export const getIFund = async (fundCode: string|number, dateTime: number = Date.
    
 
   const fundData:FundData = {
-    from: '同花顺爱基金',
+    from: '同花顺网',
     estimatedVal: Number(obj[1])
   }
 
@@ -206,7 +206,7 @@ export const getJJMMFund = async (fundCode: string|number, dateTime: number = Da
    
 
   const fundData:FundData = {
-    from: '基金买卖网',
+    from: '基金买卖',
     estimatedVal: Number(obj.estnav)
   }
 
