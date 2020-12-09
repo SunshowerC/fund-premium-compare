@@ -103,7 +103,7 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
   }
   
   let curDate = dateFormat(dateTime, `yyyy-MM-dd`)
-  const  hour = Number(dateFormat(dateTime, `h`))
+  const  hour = Number(dateFormat(dateTime, `H`))
 
   // 这是昨天的数据
   if(hour >= 0 && hour <= 9) {

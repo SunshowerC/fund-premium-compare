@@ -12,6 +12,7 @@ import FundPredictEntity from "./src/entities/fund.entity";
 
 import { compareFundPremium, DISCOUNT_COST_RATE, FundData, PREMIUM_COST_RATE } from "./src/fund-data-fetch";
 import { AggrResult, findFundData, save } from "./src/services";
+import { numPadEnd } from "./src/utils";
 
 
 const fundCode:string = process.env.code!
@@ -19,8 +20,8 @@ const MAX_NUM = process.env.max ?? 3
 
 
 const saveData = (dataList: FundData[])=>{
-  // 如果最终涨幅与最终溢价率出来了
-  if(dataList[0].finalIncrease && dataList[0].finalPremium) {
+  // 如果最终涨幅或者最终溢价率出来了
+  if(dataList[0].finalIncrease || dataList[0].finalPremium) {
     const saveList: Omit<FundPredictEntity, 'id'|'createDate'|'updateDate'>[] = dataList.map((item: any) => {
       let success = 0
 
@@ -28,16 +29,17 @@ const saveData = (dataList: FundData[])=>{
       //   console.log('debug')
       // }
 
-      if(item.premiumProfit![0] === '溢价' && 
+      if(item.premiumProfit![0] === '溢' && 
         item.finalPremium - PREMIUM_COST_RATE > 0) {
         success = 1
-      } else if(item.premiumProfit![0] === '折价' && 
+      } else if(item.premiumProfit![0] === '折' && 
         - item.finalPremium - DISCOUNT_COST_RATE > 0) {
         success = 1
       } else if(
-        // 如果无操作正确，那么最终溢价率应该在 -0.51 ~ 0.16 之间
+        // 如果无操作正确，那么最终溢价率应该在 -0.51 - 0.1 ~ 0.16 + 0.1 之间
+        // 无操作也可能是因为溢价太小，套利风险大，所以只有一丢溢价执行 无操作也视为正确
         item.premiumProfit![0] === '无' &&
-        (item.finalPremium  <  PREMIUM_COST_RATE && item.finalPremium   > -DISCOUNT_COST_RATE)
+        (item.finalPremium  <  PREMIUM_COST_RATE+0.1 && item.finalPremium   > -DISCOUNT_COST_RATE-0.1)
       ){
         success = 1
       } 
@@ -85,7 +87,7 @@ const echoReport = async (reportList: FundData[][])=>{
       const {positive, negative, times} = avgError[`${item.from},${item.fundName}`];
       const predictSucRate = rateResult[`${item.from},${item.fundName}`];
 
-      (item as any).avgError = `${times[0]}负:${negative} ${times[1]}正:${positive}`;
+      (item as any).avgError = `${times[0]}负:${numPadEnd(negative, 6) } ${times[1]}正:${numPadEnd(positive, 5)}`;
       (item as any).predictSucRate = predictSucRate
     })
     

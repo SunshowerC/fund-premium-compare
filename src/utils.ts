@@ -54,3 +54,9 @@ export const toFixed = (num: number, len: number = 3):number=>{
 
   return Number((num.toFixed(len)))
 }
+
+
+export const numPadEnd = (input:any, len: number, str='0')=>{
+  const result:string = input.toString()
+  return result.padEnd(len, str)
+}
