@@ -167,7 +167,8 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
 
   const fundData:FundData = {
     from: '好买基金',
-    finalVal: (fundFinalValDate === curDate ) ?   Number(finalVal) : undefined,
+    // 妈的，好买基金网有时候不准，是昨天的数据
+    // finalVal: (fundFinalValDate === curDate ) ?   Number(finalVal) : undefined,
     estimatedVal: Number(estimatedVal)
   }
 

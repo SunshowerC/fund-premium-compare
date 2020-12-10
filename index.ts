@@ -1,4 +1,4 @@
-import { find } from "lodash";
+import colors from 'colors/safe'
 import FundPredictEntity from "./src/entities/fund.entity";
 /**
  * 富国天惠成长混合   161005
@@ -12,16 +12,18 @@ import FundPredictEntity from "./src/entities/fund.entity";
 
 import { compareFundPremium, DISCOUNT_COST_RATE, FundData, PREMIUM_COST_RATE } from "./src/fund-data-fetch";
 import { AggrResult, findFundData, save } from "./src/services";
-import { numPadEnd } from "./src/utils";
+import { numPadEnd, toFixed } from "./src/utils";
 
 
 const fundCode:string = process.env.code!
 const MAX_NUM = process.env.max ?? 3
 
-
+/**
+ * 格式化数据并保存到数据库
+ */
 const saveData = (dataList: FundData[])=>{
   // 如果最终涨幅或者最终溢价率出来了
-  if(dataList[0].finalIncrease || dataList[0].finalPremium) {
+  if(dataList[0].finalVal) {
     const saveList: Omit<FundPredictEntity, 'id'|'createDate'|'updateDate'>[] = dataList.map((item: any) => {
       let success = 0
 
@@ -62,6 +64,36 @@ const saveData = (dataList: FundData[])=>{
   }
 }
 
+/**
+ * 计算当天套利可信度
+ */
+const calcReliability = (dataList: FundData[])=>{
+  const result = dataList.reduce((result, cur)=>{
+    const suggest = cur.premiumProfit?.[0]
+    if(suggest) {
+      result[suggest] = result[suggest] + ((cur as any).predictSucRate || 0)
+    }
+    return result
+  }, {
+    '折':0,
+    无:0,
+    溢:0,
+  })
+
+  let total = 0
+  const maxNumKey = Object.entries(result).reduce((maxNumKey, [key, val])=>{
+    total += val
+    if(result[maxNumKey] < val) {
+      maxNumKey = key
+    }
+    return maxNumKey
+  }, '折')
+
+  const  rate = toFixed(result[maxNumKey] / total * 100, 2) 
+  return [maxNumKey, rate + '%']
+}
+
+
 const echoReport = async (reportList: FundData[][])=>{
   const list = await findFundData()
   const aggr = new AggrResult(list)
@@ -76,11 +108,7 @@ const echoReport = async (reportList: FundData[][])=>{
     const {positive, negative, times} = avgError[dataList[0].fundName!]
     const {total, sucRate} = premiumRateMap[dataList[0].fundName!]
 
-    console.log(`基金平均负值误差(${times[0]}次)为：${negative}`)
-    console.log(`基金平均正值误差(${times[1]}次)为：${positive}`)
-    console.log(`基金总套利 ${total}次，成功率: ${sucRate*100}%`)
 
-    saveData(dataList)
 
 
     dataList.forEach(item => {
@@ -90,7 +118,16 @@ const echoReport = async (reportList: FundData[][])=>{
       (item as any).avgError = `${times[0]}负:${numPadEnd(negative, 6) } ${times[1]}正:${numPadEnd(positive, 5)}`;
       (item as any).predictSucRate = predictSucRate
     })
+
+    const reliability = calcReliability(dataList)
+
     
+    console.log(`基金平均负值误差(${times[0]}次)为：${negative}`)
+    console.log(`基金平均正值误差(${times[1]}次)为：${positive}`)
+    console.log(`基金总套利 ${total}次，${colors.magenta(`成功率: ${sucRate*100}%`)}`)
+    console.log(colors.red(`本次套利可信度: ${reliability}`))
+
+
     dataList.unshift({
       from: '来源',
       error: '误差' as any,
@@ -115,6 +152,10 @@ const echoReport = async (reportList: FundData[][])=>{
       'finalPremium',
       // 'error',
     ])
+
+
+    saveData(dataList)
+
   })
 }
 
