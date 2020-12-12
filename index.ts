@@ -18,12 +18,23 @@ import { numPadEnd, toFixed } from "./src/utils";
 const fundCode:string = process.env.code!
 const MAX_NUM = process.env.max ?? 3
 
+const shouldSave = ()=>{
+  const now = new Date()
+  const day = now.getDay()
+   
+  // 如果是周末
+  if([0,6].includes(day)) {
+    return false
+  } 
+  return true
+}
+
 /**
  * 格式化数据并保存到数据库
  */
 const saveData = (dataList: FundData[])=>{
   // 如果最终涨幅或者最终溢价率出来了
-  if(dataList[0].finalVal) {
+  if(dataList[0].finalVal && shouldSave()) {
     const saveList: Omit<FundPredictEntity, 'id'|'createDate'|'updateDate'>[] = dataList.map((item: any) => {
       let success = 0
 
@@ -124,9 +135,9 @@ const echoReport = async (reportList: FundData[][])=>{
     
     console.log(`基金平均负值误差(${times[0]}次)为：${negative}`)
     console.log(`基金平均正值误差(${times[1]}次)为：${positive}`)
-    console.log(`基金总套利 ${total}次，${colors.magenta(`成功率: ${sucRate*100}%`)}`)
+    console.log(`基金总套利 ${total}次，${colors.magenta(`成功率: ${toFixed(sucRate*100)}%`)}`)
     console.log(colors.red(`本次套利可信度: ${reliability}`))
-
+    saveData(dataList)
 
     dataList.unshift({
       from: '来源',
@@ -154,7 +165,7 @@ const echoReport = async (reportList: FundData[][])=>{
     ])
 
 
-    saveData(dataList)
+    
 
   })
 }

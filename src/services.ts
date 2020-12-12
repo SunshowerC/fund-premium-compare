@@ -8,13 +8,18 @@ const ormconfig: ConnectionOptions = {
   type: 'mysql',
   entities: [path.join(__dirname, 'entities/*.entity{.ts,.js}')],
   synchronize: false,
-  host: 'localhost',
   port: 3306,
   username: 'root',
-  password: '12345678',
-  database: 'fund_tab',
+  // host: 'localhost',
+  // password: '12345678',
+  // database: 'fund_tab',
 
+  host: '34.97.207.239',  
+  password: 'MDbai1@3',
+  database: 'fund',
 }
+
+
 let connection:Connection
 let fundPredictRepo: Repository<FundPredictEntity>
 
