@@ -72,6 +72,7 @@ export const getEastmoneyFund = async (fundCode: string|number, dateTime: number
     estimatedVal: Number(obj.gsz),
   }
 
+  console.log('天天基金', fundCode)
 
   return fundData
 }
@@ -124,6 +125,7 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
     finalVal: (obj.nav_dt === curDate ) ?   Number(obj.fund_nav) : undefined
   }
 
+  console.log('集思录网', fundCode)
 
   return fundData
 }
@@ -143,6 +145,7 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
 
   const valDom = dom.window.document.querySelector(`.con_value`)
 
+  // TODO: 这个容易超时
   const {data: domData} =  await axios.get(`https://www.howbuy.com/fund/${fundCode}/`)
   // 净值 dom
   const finalValDom = new JSDOM(domData)
@@ -172,7 +175,7 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
     estimatedVal: Number(estimatedVal)
   }
 
-
+  console.log('好买基金', fundCode)
   return fundData
 }
 
@@ -192,8 +195,7 @@ export const getIFund = async (fundCode: string|number, dateTime: number = Date.
     from: '同花顺网',
     estimatedVal: Number(obj[1])
   }
-
-
+  console.log('同花顺网', fundCode)
   return fundData
 }
 
@@ -214,6 +216,7 @@ export const getJJMMFund = async (fundCode: string|number, dateTime: number = Da
     from: '基金买卖',
     estimatedVal: Number(obj.estnav)
   }
+  console.log('基金买卖', fundCode)
 
   return fundData
 }
@@ -237,6 +240,7 @@ export const getSinaFund = async (fundCode: string|number, dateTime: number = Da
     from: '新浪财经',
     estimatedVal: Number(estimatedVal)
   }
+  console.log('新浪财经', fundCode)
 
   return fundData
 }
@@ -309,7 +313,7 @@ export const calcPremium = (fundData: FundData[], constFund: ConstFund)=>{
 
 export const compareFundPremium = async (fundCode: string)=>{
   const fnList = [
-    getHowBuyFund,
+    // getHowBuyFund,
     getEastmoneyFund,
     getJisiluFund,
     getJJMMFund,
