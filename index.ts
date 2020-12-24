@@ -109,9 +109,13 @@ const echoRate = (map: SucRateResult, preMsg: string)=>{
   const {total, sucRate, premiumTotal, premiumSucRate, discountTotal, discountSucRate, noneTotal, noneSucRate} = map
 
   console.log(`${preMsg},基金总套利 ${total}次，${colors.magenta(`成功率: ${toFixed(sucRate*100)}%`)}`)
-  console.log(`其${colors.green(`溢价`)}套利 ${premiumTotal}次，${colors.magenta(`成功率: ${toFixed(premiumSucRate*100)}%`)}`)
-  console.log(`其${colors.green(`折价`)}套利 ${discountTotal}次，${colors.magenta(`成功率: ${toFixed(discountSucRate*100)}%`)}`)
-  console.log(`无套利操作 ${noneTotal}次，${colors.magenta(`成功率: ${toFixed(noneSucRate*100)}%`)}`)
+
+  console.log(`其${colors.green(`溢价`)}套利 ${premiumTotal}次(占比${colors.red(toFixed(premiumTotal/total*100).toString())}%) ，${colors.magenta(`成功率: ${toFixed(premiumSucRate*100)}%`)}`)
+
+  console.log(`其${colors.green(`折价`)}套利 ${discountTotal}次(占比${colors.blue(toFixed(discountTotal/total*100).toString())}%)，${colors.magenta(`成功率: ${toFixed(discountSucRate*100)}%`)}`)
+
+  console.log(`无套利操作 ${noneTotal}次(占比${toFixed(noneTotal/total*100)}%)，${colors.magenta(`成功率: ${toFixed(noneSucRate*100)}%`)}`)
+
   console.log(DIVISION)
 }
 
@@ -119,17 +123,17 @@ const echoReport = async (reportList: FundData[][])=>{
   const list = await findFundData()
   const aggr = new AggrResult(list)
 
-  const avgError = aggr.getAvgError(60)
-  const rateResult = aggr.getPredictSuccessRate(60)
-  const premiumRateMap60 = aggr.premiumSuccessRate(60)
+  const avgError = aggr.getAvgError(30)
+  const rateResult = aggr.getPredictSuccessRate(new Date(), 30)
+  const premiumRateMap30 = aggr.premiumSuccessRate(30)
   const premiumRateMap14 = aggr.premiumSuccessRate(14)
 
   reportList.forEach(dataList => {
     console.log('\n\n')
     console.log(dataList[0].date,dataList[0].fundName,dataList[0].fundCode )
     const {positive, negative, times} = avgError[dataList[0].fundName!]
-    // 最近 60 天的
-    const operateSuc60 = premiumRateMap60[dataList[0].fundName!]
+    // 最近 30 天的
+    const operateSuc30 = premiumRateMap30[dataList[0].fundName!]
 
     const operateSuc14 = premiumRateMap14[dataList[0].fundName!]
     
@@ -152,7 +156,7 @@ const echoReport = async (reportList: FundData[][])=>{
     console.log(`基金平均负值误差(${times[0]}次)为：${negative}`)
     console.log(`基金平均正值误差(${times[1]}次)为：${positive}`)
     console.log(DIVISION)
-    echoRate(operateSuc60, '最近60天')
+    echoRate(operateSuc30, '最近30天')
     echoRate(operateSuc14, '最近14天')
     
 

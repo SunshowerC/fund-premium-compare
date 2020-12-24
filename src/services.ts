@@ -222,17 +222,20 @@ export class AggrResult {
    * 每个源-基金的预测成功率
    * 1. 每个 预测源+基金【最近14天，30天，60天，90天】的成功率
    */
-  getPredictSuccessRate(durationDays?: number) {
+  getPredictSuccessRate(base: Date = this.now , durationDays?: number) {
     const rateResult = Object.entries(this.groupDataMap).reduce((result, [curCompanyAndFund, curList])=>{
       const list = curList.filter(item => {
         if(!durationDays){
           return true
         } else {
-          return this.dateDiff(item.createDate, this.now) < durationDays
+          return this.dateDiff(item.createDate, base) < durationDays
         }
       })
-
-      result[curCompanyAndFund] = toFixed(list.filter(item => item.success === 1).length / list.length) 
+      if(list.length === 0) {
+        result[curCompanyAndFund] = 1
+      } else {
+        result[curCompanyAndFund] = toFixed(list.filter(item => item.success === 1).length / list.length) 
+      }
  
       return result
     }, {
@@ -301,7 +304,7 @@ export class AggrResult {
    * 基金被套利成功概率 = 当天有 4 个源以上预测 溢价/折价 ，且最终结果符合的次数，除以 当天有 4 个源以上预测 溢价/折价的总次数
    */
   premiumSuccessRate(durationDays: number) {
-    const predictSuccessRate = this.getPredictSuccessRate(durationDays)
+    
     
     
     const fundSucMap: Record<string, SucRateResult> = {}
@@ -320,7 +323,7 @@ export class AggrResult {
     .forEach(([curKey,curDateList]) => {
       // curDateList 是 当天的数据
 
-      const [fundName] = curKey.split(',')
+      const [fundName, date] = curKey.split(',')
       
 
       fundSucMap[fundName] = fundSucMap[fundName] || {
@@ -337,6 +340,9 @@ export class AggrResult {
         noneTotal: 0,
       }
 
+      // 历史的 date 这个时间点，往前推 durationDays 天内的数据源预测成功率
+      const predictSuccessRate = this.getPredictSuccessRate(new Date(date),durationDays)
+
       // 折价套利胜率
       // 溢价套利胜率
       // 逻辑：算出当天应该折价还是溢价套利，结果是否溢价【>0.16】还是折价[<-0.51]
@@ -347,7 +353,7 @@ export class AggrResult {
       // 根据各个源的预测，是否操作成功【有 4 个源的都预测成功，认为当天操作成功】
       // 注意：此处不区分到底是 折价操作成功，还是溢价操作成功，还是 无操作成功
       // 当天是否操作成功
-      let operateSuc = 0, premiumSuc = 0, discountSuc = 0, nonSuc = 0
+      let   premiumSuc = 0, discountSuc = 0, nonSuc = 0
 
       switch(shouldDo) {
         case '溢':
@@ -380,7 +386,6 @@ export class AggrResult {
       
       if(premiumSuc || discountSuc || nonSuc) {
         fundSucMap[fundName].success++  
-        operateSuc = 1
       }
 
 
