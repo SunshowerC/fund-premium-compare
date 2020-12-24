@@ -76,6 +76,23 @@ export const findFundData = async (entity?: FundPredictEntity)=>{
   return list
 }
 
+export interface SucRateResult  {
+  success:number, 
+  total: number, 
+  sucRate: number,
+
+  premiumSucCount:number, 
+  premiumTotal: number, 
+  premiumSucRate: number,
+
+  discountSucCount:number, 
+  discountTotal: number, 
+  discountSucRate: number,
+
+  noneSucCount:number, 
+  noneTotal: number, 
+  noneSucRate: number,
+}
 
 export class AggrResult {
   public fundNames: string[] = []
@@ -287,23 +304,7 @@ export class AggrResult {
     const predictSuccessRate = this.getPredictSuccessRate(durationDays)
     
     
-    const fundSucMap:Record<string, {
-      success:number, 
-      total: number, 
-      sucRate: number,
-
-      premiumSucCount:number, 
-      premiumTotal: number, 
-      premiumSucRate: number,
-
-      discountSucCount:number, 
-      discountTotal: number, 
-      discountSucRate: number,
-
-      noneSucCount:number, 
-      noneTotal: number, 
-      noneSucRate: number,
-    }> = {}
+    const fundSucMap: Record<string, SucRateResult> = {}
 
     Object.entries(this.groupFundDateMap)
     .filter(([curKey,curDateList]) => {
