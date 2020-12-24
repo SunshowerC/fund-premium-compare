@@ -55,6 +55,9 @@ export default class FundPredictEntity {
   })
   finalIncrease!: number
 
+  /**
+   * 预测溢价率
+   */
   @Column({
     name: 'predict_premium',
     type: 'float'

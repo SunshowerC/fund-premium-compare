@@ -111,31 +111,38 @@ const echoReport = async (reportList: FundData[][])=>{
 
   const avgError = aggr.getAvgError(90)
   const rateResult = aggr.getPredictSuccessRate(90)
-  const premiumRateMap = aggr.premiumSuccessRate(4)
+  const premiumRateMap = aggr.premiumSuccessRate(90)
 
   reportList.forEach(dataList => {
     console.log('\n\n')
     console.log(dataList[0].date,dataList[0].fundName,dataList[0].fundCode )
     const {positive, negative, times} = avgError[dataList[0].fundName!]
     const {total, sucRate} = premiumRateMap[dataList[0].fundName!]
+    
 
 
 
 
     dataList.forEach(item => {
-      const {positive, negative, times} = avgError[`${item.from},${item.fundName}`];
+      const {positive: innerPositive, negative: innerNegative, times: innerTimes} = avgError[`${item.from},${item.fundName}`];
       const predictSucRate = rateResult[`${item.from},${item.fundName}`];
 
-      (item as any).avgError = `${times[0]}负:${numPadEnd(negative, 6) } ${times[1]}正:${numPadEnd(positive, 5)}`;
+      (item as any).avgError = `${innerTimes[0]}负:${numPadEnd(innerNegative, 6) } ${innerTimes[1]}正:${numPadEnd(innerPositive, 5)}`;
       (item as any).predictSucRate = predictSucRate
     })
 
     const reliability = calcReliability(dataList)
 
     
+
     console.log(`基金平均负值误差(${times[0]}次)为：${negative}`)
     console.log(`基金平均正值误差(${times[1]}次)为：${positive}`)
-    console.log(`基金总套利 ${total}次，${colors.magenta(`成功率: ${toFixed(sucRate*100)}%`)}`)
+    // TODO: 总套利次数 = 
+    // 折价亏率：预测折价套利，结果亏钱 
+    // 溢价亏率，预测溢价套利，结果亏钱
+    
+    
+    console.log(`基金总套利 ${total}次，${colors.magenta(`操作成功率: ${toFixed(sucRate*100)}%`)}`)
     console.log(colors.red(`本次套利可信度: ${reliability}`))
     saveData(dataList)
 

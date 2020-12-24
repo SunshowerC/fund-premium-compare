@@ -1,7 +1,7 @@
 import axios from 'axios'
 import fetch from 'node-fetch'
 import {JSDOM} from 'jsdom'
-import { dateFormat } from './utils'
+import { dateFormat, race } from './utils'
 
 
 export interface FundData {
@@ -50,7 +50,7 @@ export const PREMIUM_COST_RATE = 0.16 // 卖出+申购成本：0.16
 export const DISCOUNT_COST_RATE = 0.51 // 买入+赎回成本：0.51
 
 // 误差区间，一般认为误差不会超过 0.1，溢价超过 COST_RATE + ERROR_GAP 即有价值套利
-const ERROR_GAP = 0.1 
+export const ERROR_GAP = 0.1 
 
 // 天天基金网
 export const getEastmoneyFund = async (fundCode: string|number, dateTime: number = Date.now())=>{
@@ -72,7 +72,6 @@ export const getEastmoneyFund = async (fundCode: string|number, dateTime: number
     estimatedVal: Number(obj.gsz),
   }
 
-  console.log('天天基金', fundCode)
 
   return fundData
 }
@@ -117,6 +116,7 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
     fundName: obj.fund_nm,
     fundCode: obj.fund_id,
     // unitVal: Number(obj.dwjz),
+    // TODO: 集思录 obj.price 是否有可能不准？
     realTimeVal: Number(obj.price),
 
     estimatedVal: Number(obj.estimate_value),
@@ -125,7 +125,6 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
     finalVal: (obj.nav_dt === curDate ) ?   Number(obj.fund_nav) : undefined
   }
 
-  console.log('集思录网', fundCode)
 
   return fundData
 }
@@ -145,7 +144,6 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
 
   const valDom = dom.window.document.querySelector(`.con_value`)
 
-  // TODO: 这个容易超时
   const {data: domData} =  await axios.get(`https://www.howbuy.com/fund/${fundCode}/`)
   // 净值 dom
   const finalValDom = new JSDOM(domData)
@@ -175,7 +173,6 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
     estimatedVal: Number(estimatedVal)
   }
 
-  console.log('好买基金', fundCode)
   return fundData
 }
 
@@ -195,7 +192,6 @@ export const getIFund = async (fundCode: string|number, dateTime: number = Date.
     from: '同花顺网',
     estimatedVal: Number(obj[1])
   }
-  console.log('同花顺网', fundCode)
   return fundData
 }
 
@@ -216,14 +212,13 @@ export const getJJMMFund = async (fundCode: string|number, dateTime: number = Da
     from: '基金买卖',
     estimatedVal: Number(obj.estnav)
   }
-  console.log('基金买卖', fundCode)
 
   return fundData
 }
 
 
 /**
- * @deprecated 新浪财经误差太大，太离谱，弃用
+ * 
  */
 // 新浪财经： http://finance.sina.com.cn/fund/quotes/161005/bc.shtml
 export const getSinaFund = async (fundCode: string|number, dateTime: number = Date.now())=>{
@@ -240,7 +235,6 @@ export const getSinaFund = async (fundCode: string|number, dateTime: number = Da
     from: '新浪财经',
     estimatedVal: Number(estimatedVal)
   }
-  console.log('新浪财经', fundCode)
 
   return fundData
 }
@@ -313,16 +307,36 @@ export const calcPremium = (fundData: FundData[], constFund: ConstFund)=>{
 
 export const compareFundPremium = async (fundCode: string)=>{
   const fnList = [
-    // getHowBuyFund,
+    getHowBuyFund,
     getEastmoneyFund,
     getJisiluFund,
     getJJMMFund,
     getIFund,
     getSinaFund
   ]
-  const dataList = await Promise.all(
-    fnList.map(fn => fn(fundCode))
+
+  const fnName = [
+    'getHowBuyFund',
+    'getEastmoneyFund',
+    'getJisiluFund',
+    'getJJMMFund',
+    'getIFund',
+    'getSinaFund'
+  ]
+
+  let dataListWithNull = await Promise.all(
+    fnList.map(fn => race(fn(fundCode), 30000))
   )  
+
+  
+  const dataList:FundData[] = dataListWithNull.filter((item, idx)=>{
+    if(item) {
+      return true 
+    } else {
+      console.error(`拉取数据超时, ${fnName[idx]}(${fundCode}) `)
+      return false
+    }
+  }) as  FundData[]
   
   
   const constFund = getConstFundData(dataList)
@@ -330,19 +344,7 @@ export const compareFundPremium = async (fundCode: string)=>{
 
   return dataList
 
-  
-  // const formatList = dataList.map(item => {
-  //   return {
-  //   '------来源------': item.from,
-  //   '--误差--': item.error,
-  //   '--估值--': item.estimatedVal,
-  //   '--估值溢价率--': item.estimatedPremium,
-  //   '估算涨幅': item.estimatedIncreaseRate,
-  //   '最终溢价率': item.finalPremium,
-  // }
-  // })
-
-  // console.table(formatList)
+   
 
 }
 

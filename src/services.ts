@@ -3,7 +3,7 @@ import path from 'path'
 import FundPredictEntity, { PredictStatus } from './entities/fund.entity'
 import { result, sum } from 'lodash'
 import { toFixed } from './utils'
-import { DISCOUNT_COST_RATE, PREMIUM_COST_RATE } from './fund-data-fetch'
+import { DISCOUNT_COST_RATE, ERROR_GAP, PREMIUM_COST_RATE } from './fund-data-fetch'
 const ormconfig: ConnectionOptions = {
   type: 'mysql',
   entities: [path.join(__dirname, 'entities/*.entity{.ts,.js}')],
@@ -73,6 +73,9 @@ export class AggrResult {
   public fundNames: string[] = []
   public companies: string[] = []
   public groupDataMap: Record<string, FundPredictEntity[]> = {}
+  /** 
+   * 基金-日期 为 key 分组
+   * */
   public groupFundDateMap: Record<string, FundPredictEntity[]> = {}
   private now = new Date()
 
@@ -211,20 +214,95 @@ export class AggrResult {
     return rateResult
   }
 
+  /**
+   * 计算每一个数据源的预测操作
+   */
+  private calcPredict() {
+    Object.entries(this.groupFundDateMap)
+    .forEach(([curKey,curList]) => {
+      // const [fundName] = curKey.split(',')
+      // 预测操作，不一定和实际结果一样
+      curList.forEach(item => {
+        if(item.predictPremium - PREMIUM_COST_RATE - ERROR_GAP > 0) {
+          Object.assign(item, {
+            shouldDo: '溢'
+          })
+        } else if(  - item.predictPremium - DISCOUNT_COST_RATE - ERROR_GAP > 0) {
+          Object.assign(item, {
+            shouldDo: '折'
+          })
+        } else {
+          Object.assign(item, {
+            shouldDo: '无'
+          })
+        }
+      })
+    })
+  }
 
+  /**
+   * 计算当天应该进行的操作
+   */
+  private curDatePredictOperation = (dataList: FundPredictEntity[], rateResult: Record<string, number>)=>{
+    const result = dataList.reduce((result, cur)=>{
+      const suggest = (cur as any).shouldDo
+      if(suggest) {
+        const predictSucRate = rateResult[`${cur.predictCompany},${cur.fundName}`]
+        result[suggest] = result[suggest] + (predictSucRate || 0)
+      }
+      return result
+    }, {
+      '折':0,
+      无:0,
+      溢:0,
+    })
+  
+    let total = 0
+    const maxNumKey = Object.entries(result).reduce((maxNumKey, [key, val])=>{
+      total += val
+      if(result[maxNumKey] < val) {
+        maxNumKey = key
+      }
+      return maxNumKey
+    }, '折')
+  
+    const  rate = toFixed(result[maxNumKey] / total * 100, 2) 
+    return [maxNumKey, rate + '%']
+  }
 
   /**
    * 基金被套利成功概率 = 当天有 4 个源以上预测 溢价/折价 ，且最终结果符合的次数，除以 当天有 4 个源以上预测 溢价/折价的总次数
    */
-  premiumSuccessRate(times: number, durationDays?: number) {
+  premiumSuccessRate(durationDays: number) {
+    const predictSuccessRate = this.getPredictSuccessRate(durationDays)
+    
+    const fundSucMap:Record<string, {
+      success:number, 
+      total: number, 
+      sucRate: number,
 
-    const fundSucMap:Record<string, {success:number, total: number, sucRate: number}> = {}
+      premiumSucCount:number, 
+      premiumSucTotal: number, 
+      premiumSucRate: number,
+
+      discountSucCount:number, 
+      discountSucTotal: number, 
+      discountSucRate: number,
+
+      noneSucCount:number, 
+      noneSucTotal: number, 
+      noneSucRate: number,
+    }> = {}
 
     Object.entries(this.groupFundDateMap)
-    .forEach(([curKey,curList]) => {
-      const [fundName] = curKey.split(',')
+    .forEach(([curKey,curDateList]) => {
+      // curDateList 是 当天的数据
 
-      curList = curList.filter(item => {
+      const [fundName] = curKey.split(',')
+      
+      // 过滤出 日期区间内的数据
+      // TODO: 这里的过滤操作，应该是放到 forEach 外面的吧
+      curDateList = curDateList.filter(item => {
         if(!durationDays){
           return true
         } else {
@@ -237,12 +315,41 @@ export class AggrResult {
         total: 0,
       }
 
-      // 根据各个源的预测，是否操作成功
-      const operateSucc = curList.filter(item => item.success === PredictStatus.SUCCESS).length >= times
+      // 折价套利胜率
+      // 溢价套利胜率
+      // 逻辑：算出当天应该折价还是溢价套利，结果是否溢价【>0.16】还是折价[<-0.51]
+      // 算出所有天数的 discountSuc / doDiscountTotal， 和 premiumSuc / doPremiumTotal
+      // 当天应该操作什么
+      const [shouldDo, doRate] = this.curDatePredictOperation(curDateList, predictSuccessRate)
+
+      // 根据各个源的预测，是否操作成功【有 4 个源的都预测成功，认为当天操作成功】
+      // 注意：此处不区分到底是 折价操作成功，还是溢价操作成功，还是 无操作成功
+      // 当天是否操作成功
+      let operateSucc = 0, premiumSucc = 0, discountSucc = 0, nonSucc = 0
+
+
+      if(shouldDo === '溢' && 
+      curDateList[0].finalPremium - PREMIUM_COST_RATE > 0) {
+        premiumSucc = 1
+        // TODO:
+        fundSucMap[fundName].premiumSucCount++
+      } else if(shouldDo === '折' && 
+        - curDateList[0].finalPremium - DISCOUNT_COST_RATE > 0) {
+          discountSucc = 1
+      } else if(
+        // 如果无操作正确，那么最终溢价率应该在 -0.51 - 0.1 ~ 0.16 + 0.1 之间
+        // 无操作也可能是因为溢价太小，套利风险大，所以只有一丢溢价执行 无操作也视为正确
+        shouldDo === '无' &&
+        (curDateList[0].finalPremium  <  PREMIUM_COST_RATE+0.1 && curDateList[0].finalPremium   > -DISCOUNT_COST_RATE-0.1)
+      ){
+        nonSucc = 1
+      } 
       
-      if(operateSucc) {
+      
+      if(premiumSucc || discountSucc || nonSucc) {
         fundSucMap[fundName].success++  
       }
+
       fundSucMap[fundName].total++
     })
 
