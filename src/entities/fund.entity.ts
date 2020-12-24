@@ -93,4 +93,6 @@ export default class FundPredictEntity {
     type: 'datetime',
   })
   updateDate!: Date
+
+  shouldDo?: '溢' | '折' | '无'
 }

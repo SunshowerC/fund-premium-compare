@@ -124,6 +124,8 @@ export class AggrResult {
 
     this.companies = Array.from(map.companies.keys())
     this.fundNames = Array.from(map.fundNames.keys())
+
+    this.calcPredict()
   }
 
   private dateDiff(a, b) {
@@ -215,7 +217,7 @@ export class AggrResult {
   }
 
   /**
-   * 计算每一个数据源的预测操作
+   * 计算每一个数据源每天的预测操作
    */
   private calcPredict() {
     Object.entries(this.groupFundDateMap)
@@ -245,7 +247,7 @@ export class AggrResult {
    */
   private curDatePredictOperation = (dataList: FundPredictEntity[], rateResult: Record<string, number>)=>{
     const result = dataList.reduce((result, cur)=>{
-      const suggest = (cur as any).shouldDo
+      const suggest = cur.shouldDo!
       if(suggest) {
         const predictSucRate = rateResult[`${cur.predictCompany},${cur.fundName}`]
         result[suggest] = result[suggest] + (predictSucRate || 0)
@@ -276,43 +278,54 @@ export class AggrResult {
   premiumSuccessRate(durationDays: number) {
     const predictSuccessRate = this.getPredictSuccessRate(durationDays)
     
+    
     const fundSucMap:Record<string, {
       success:number, 
       total: number, 
       sucRate: number,
 
       premiumSucCount:number, 
-      premiumSucTotal: number, 
+      premiumTotal: number, 
       premiumSucRate: number,
 
       discountSucCount:number, 
-      discountSucTotal: number, 
+      discountTotal: number, 
       discountSucRate: number,
 
       noneSucCount:number, 
-      noneSucTotal: number, 
+      noneTotal: number, 
       noneSucRate: number,
     }> = {}
 
     Object.entries(this.groupFundDateMap)
+    .filter(([curKey,curDateList]) => {
+      // 过滤出 日期区间内的数据
+
+      const [, date] = curKey.split(',')
+      if(!durationDays){
+        return true
+      } else {
+        return this.dateDiff(date, this.now) < durationDays
+      }
+    })
     .forEach(([curKey,curDateList]) => {
       // curDateList 是 当天的数据
 
       const [fundName] = curKey.split(',')
       
-      // 过滤出 日期区间内的数据
-      // TODO: 这里的过滤操作，应该是放到 forEach 外面的吧
-      curDateList = curDateList.filter(item => {
-        if(!durationDays){
-          return true
-        } else {
-          return this.dateDiff(item.createDate, this.now) < durationDays
-        }
-      })
 
       fundSucMap[fundName] = fundSucMap[fundName] || {
         success: 0,
         total: 0,
+        
+        premiumSucCount: 0,
+        premiumTotal: 0,
+
+        discountSucCount: 0,
+        discountTotal: 0,
+
+        noneSucCount: 0,
+        noneTotal: 0,
       }
 
       // 折价套利胜率
@@ -320,41 +333,56 @@ export class AggrResult {
       // 逻辑：算出当天应该折价还是溢价套利，结果是否溢价【>0.16】还是折价[<-0.51]
       // 算出所有天数的 discountSuc / doDiscountTotal， 和 premiumSuc / doPremiumTotal
       // 当天应该操作什么
-      const [shouldDo, doRate] = this.curDatePredictOperation(curDateList, predictSuccessRate)
+      const [shouldDo] = this.curDatePredictOperation(curDateList, predictSuccessRate)
 
       // 根据各个源的预测，是否操作成功【有 4 个源的都预测成功，认为当天操作成功】
       // 注意：此处不区分到底是 折价操作成功，还是溢价操作成功，还是 无操作成功
       // 当天是否操作成功
-      let operateSucc = 0, premiumSucc = 0, discountSucc = 0, nonSucc = 0
+      let operateSuc = 0, premiumSuc = 0, discountSuc = 0, nonSuc = 0
+
+      switch(shouldDo) {
+        case '溢':
+          fundSucMap[fundName].premiumTotal++
+          if(curDateList[0].finalPremium - PREMIUM_COST_RATE > 0) {
+            premiumSuc = 1
+            fundSucMap[fundName].premiumSucCount++
+          }
+          break
+
+        case '折':
+          fundSucMap[fundName].discountTotal++
+          if(- curDateList[0].finalPremium - DISCOUNT_COST_RATE > 0) {
+            discountSuc = 1
+            fundSucMap[fundName].discountSucCount++
+          }
+          break
 
 
-      if(shouldDo === '溢' && 
-      curDateList[0].finalPremium - PREMIUM_COST_RATE > 0) {
-        premiumSucc = 1
-        // TODO:
-        fundSucMap[fundName].premiumSucCount++
-      } else if(shouldDo === '折' && 
-        - curDateList[0].finalPremium - DISCOUNT_COST_RATE > 0) {
-          discountSucc = 1
-      } else if(
-        // 如果无操作正确，那么最终溢价率应该在 -0.51 - 0.1 ~ 0.16 + 0.1 之间
-        // 无操作也可能是因为溢价太小，套利风险大，所以只有一丢溢价执行 无操作也视为正确
-        shouldDo === '无' &&
-        (curDateList[0].finalPremium  <  PREMIUM_COST_RATE+0.1 && curDateList[0].finalPremium   > -DISCOUNT_COST_RATE-0.1)
-      ){
-        nonSucc = 1
-      } 
+        case '无':
+          fundSucMap[fundName].noneTotal++
+          if(curDateList[0].finalPremium  <  PREMIUM_COST_RATE+0.1 && curDateList[0].finalPremium   > -DISCOUNT_COST_RATE-0.1) {
+            nonSuc = 1
+            fundSucMap[fundName].noneSucCount++
+          }
+          break
+      }
+      fundSucMap[fundName].total++
+
       
-      
-      if(premiumSucc || discountSucc || nonSucc) {
+      if(premiumSuc || discountSuc || nonSuc) {
         fundSucMap[fundName].success++  
+        operateSuc = 1
       }
 
-      fundSucMap[fundName].total++
+
+      
     })
 
     Object.entries(fundSucMap).forEach(([fundName, val]) => {
       fundSucMap[fundName].sucRate = toFixed(val.success / val.total) 
+      fundSucMap[fundName].premiumSucRate = toFixed(val.premiumSucCount / val.premiumTotal) 
+      fundSucMap[fundName].discountSucRate = toFixed(val.discountSucCount / val.discountTotal) 
+      fundSucMap[fundName].noneSucRate = toFixed(val.noneSucCount / val.noneTotal) 
     })
     
     return fundSucMap

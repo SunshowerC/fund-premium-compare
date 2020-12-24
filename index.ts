@@ -117,7 +117,7 @@ const echoReport = async (reportList: FundData[][])=>{
     console.log('\n\n')
     console.log(dataList[0].date,dataList[0].fundName,dataList[0].fundCode )
     const {positive, negative, times} = avgError[dataList[0].fundName!]
-    const {total, sucRate} = premiumRateMap[dataList[0].fundName!]
+    const {total, sucRate, premiumTotal, premiumSucRate, discountTotal, discountSucRate, noneTotal, noneSucRate} = premiumRateMap[dataList[0].fundName!]
     
 
 
@@ -137,12 +137,14 @@ const echoReport = async (reportList: FundData[][])=>{
 
     console.log(`基金平均负值误差(${times[0]}次)为：${negative}`)
     console.log(`基金平均正值误差(${times[1]}次)为：${positive}`)
-    // TODO: 总套利次数 = 
-    // 折价亏率：预测折价套利，结果亏钱 
-    // 溢价亏率，预测溢价套利，结果亏钱
+     
     
     
-    console.log(`基金总套利 ${total}次，${colors.magenta(`操作成功率: ${toFixed(sucRate*100)}%`)}`)
+    console.log(`基金总套利 ${total}次，${colors.magenta(`成功率: ${toFixed(sucRate*100)}%`)}`)
+    console.log(`其${colors.green(`溢价`)}套利 ${premiumTotal}次，${colors.magenta(`成功率: ${toFixed(premiumSucRate*100)}%`)}`)
+    console.log(`其${colors.green(`折价`)}套利 ${discountTotal}次，${colors.magenta(`成功率: ${toFixed(discountSucRate*100)}%`)}`)
+    console.log(`无套利操作 ${noneTotal}次，${colors.magenta(`成功率: ${toFixed(noneSucRate*100)}%`)}`)
+
     console.log(colors.red(`本次套利可信度: ${reliability}`))
     saveData(dataList)
 
