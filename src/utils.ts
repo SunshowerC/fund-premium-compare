@@ -60,3 +60,20 @@ export const numPadEnd = (input:any, len: number, str='0')=>{
   const result:string = input.toString()
   return result.padEnd(len, str)
 }
+
+
+export const sleep = async(delay:number):Promise<undefined>=>{
+  return new Promise((resolve)=>{
+      setTimeout(resolve, delay)
+  })
+}
+
+/**
+ * 如果超过 timeout 时间，返回 null
+ */
+export const race = <T>(prom: Promise<T>, timeout: number = 10000):Promise<T|undefined>=>{
+  return Promise.race([
+    prom,
+    sleep(timeout)
+  ])
+}

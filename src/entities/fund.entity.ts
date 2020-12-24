@@ -55,6 +55,9 @@ export default class FundPredictEntity {
   })
   finalIncrease!: number
 
+  /**
+   * 预测溢价率
+   */
   @Column({
     name: 'predict_premium',
     type: 'float'
@@ -90,4 +93,6 @@ export default class FundPredictEntity {
     type: 'datetime',
   })
   updateDate!: Date
+
+  shouldDo?: '溢' | '折' | '无'
 }
