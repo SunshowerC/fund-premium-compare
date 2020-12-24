@@ -186,7 +186,7 @@ export const getIFund = async (fundCode: string|number, dateTime: number = Date.
   const obj = data.split(';').pop().split(',')
 
   if(!obj) {
-    throw new Error('爱基金数据解析错误')
+    throw new Error('同花顺网爱基金数据解析错误')
   } 
 
    
@@ -313,7 +313,7 @@ export const calcPremium = (fundData: FundData[], constFund: ConstFund)=>{
 
 export const compareFundPremium = async (fundCode: string)=>{
   const fnList = [
-    // getHowBuyFund,
+    getHowBuyFund,
     getEastmoneyFund,
     getJisiluFund,
     getJJMMFund,

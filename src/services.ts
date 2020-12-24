@@ -41,8 +41,16 @@ const getCurRepo = async()=>{
 
 export const save = async(list: Omit<FundPredictEntity, 'id'|'createDate'|'updateDate'>[])=>{
   const repo = await getCurRepo()
-  
-  const result = await repo.save(list).catch(e => {
+  const normalList = list.filter(item => {
+    if(isNaN(item.predictPremium)) {
+      console.log('数据异常', item)   
+      return false   
+    } else {
+      return true
+    }
+
+  })
+  const result = await repo.save(normalList).catch(e => {
     if(e.code === 'ER_DUP_ENTRY') {
       setTimeout(process.exit, 5000)
       return 'ignore duplicated'
