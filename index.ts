@@ -123,8 +123,8 @@ const echoReport = async (reportList: FundData[][])=>{
   const list = await findFundData()
   const aggr = new AggrResult(list)
 
-  const avgError = aggr.getAvgError(30)
-  const rateResult = aggr.getPredictSuccessRate(new Date(), 30)
+  const avgError = aggr.getAvgError(14)
+  const rateResult = aggr.getPredictSuccessRate(new Date(), 14)
   const premiumRateMap30 = aggr.premiumSuccessRate(30)
   const premiumRateMap14 = aggr.premiumSuccessRate(14)
 
