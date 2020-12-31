@@ -228,6 +228,7 @@ async function main() {
     console.log('\n-------以上为本日操作建议-------\n')
   }
 
+  setTimeout(process.exit, 5000)
 
 }
 
@@ -235,3 +236,5 @@ async function main() {
 // analyse()
 
 main()
+
+
