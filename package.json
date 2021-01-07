@@ -6,6 +6,7 @@
   "scripts": {
     "start": "ts-node index.ts",
     "start:0": "max=0 ts-node index.ts",
+    "p": "max=0 node ./dist/index.js",
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
