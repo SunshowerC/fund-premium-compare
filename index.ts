@@ -1,4 +1,5 @@
 import colors from 'colors/safe'
+import { fundCodeList } from './config';
 import FundPredictEntity from "./src/entities/fund.entity";
 /**
  * 富国天惠成长混合   161005
@@ -15,7 +16,7 @@ import { AggrResult, findFundData, SucRateResult, save } from "./src/services";
 import { numPadEnd, toFixed } from "./src/utils";
 
 const DIVISION = `--------------------------------------` 
-const fundCode:string = process.env.code!
+
 const MAX_NUM = process.env.max ?? 3
 
 const shouldSave = ()=>{
@@ -196,15 +197,7 @@ const echoReport = async (reportList: FundData[][])=>{
 }
 
 async function main() {
-  const fundCodeList = fundCode ? [fundCode] : [
-    '161005',
-    '162605',
-    // '163402',
-    '163415',
-    '161903',
-    // '162703',
-    '163417',
-  ]
+   
 
   const allFundReport = fundCodeList.map(compareFundPremium)
 

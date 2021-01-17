@@ -17,3 +17,20 @@ CREATE TABLE fund_predict_tab  (
 	 PRIMARY KEY (`id`),
    UNIQUE KEY `uni_code_company_date` (`fund_code`, `predict_company`, `predict_date`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+
+CREATE TABLE date_fund_tab  (
+  `id` bigint(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `fund_name` varchar(50)  NOT NULL,
+	`fund_code` varchar(50)  NOT NULL,
+  `fund_date` DATE NOT NULL ,
+
+  `json_data` text NOT NULL,
+  
+  `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `update_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+	 PRIMARY KEY (`id`),
+   UNIQUE KEY `uniq_code_date` (`fund_code`, `fund_date`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

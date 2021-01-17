@@ -349,3 +349,39 @@ export const compareFundPremium = async (fundCode: string)=>{
 }
 
 
+
+
+/**
+ * 拉取当天的基金分时数据
+ * @param fundCode 
+ * @param dateTime 
+ */
+export const getCurDateFund = async (fundCode: string|number, dateTime: number = Date.now())=>{
+  const {data: res} =  await axios.get(`http://push2.eastmoney.com/api/qt/stock/trends2/get?secid=0.${fundCode}&ut=fa5fd1943c7b386f172d6893dbfba10b&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6%2Cf7%2Cf8%2Cf9%2Cf10%2Cf11%2Cf12%2Cf13&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&iscr=0&ndays=1&_=${dateTime}`, {
+    "headers": {
+      "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+      "accept-language": "en,zh-CN;q=0.9,zh;q=0.8,zh-TW;q=0.7,ja;q=0.6,ru;q=0.5",
+      "cache-control": "max-age=0",
+      "upgrade-insecure-requests": "1",
+      "cookie": "em_hq_fls=js; intellpositionL=1536px; intellpositionT=455px; HAList=f-0-000001-%u4E0A%u8BC1%u6307%u6570%2Cf-0-399997-%u4E2D%u8BC1%u767D%u9152; AUTH_FUND.EASTMONEY.COM_GSJZ=AUTH*TTJJ*TOKEN; st_si=32836753597000; EMFUND1=null; EMFUND2=null; EMFUND3=null; EMFUND4=null; EMFUND5=null; EMFUND6=null; qgqp_b_id=5383d5b2c937a6f5a648895c7c0312ba; EMFUND0=null; EMFUND7=01-16%2022%3A59%3A50@%23%24%u5357%u65B9%u4E2D%u8BC1%u94F6%u884CETF@%23%24512700; st_asi=delete; EMFUND9=01-16%2023%3A30%3A22@%23%24%u5BCC%u56FD%u5929%u60E0%u6210%u957F%u6DF7%u5408A/B%28LOF%29@%23%24161005; EMFUND8=01-17 23:47:19@#$%u666F%u987A%u957F%u57CE%u9F0E%u76CA%u6DF7%u5408%28LOF%29@%23%24162605; st_pvi=62789366621137; st_sp=2019-03-07%2000%3A52%3A33; st_inirUrl=http%3A%2F%2Ffund.eastmoney.com%2F519019.html; st_sn=58; st_psi=2021011723471963-0-9009330829"
+    },
+  })
+  // data: jsonpgz({"fundcode":"162605","name":"景顺长城鼎益混合(LOF)","jzrq":"2020-09-14","dwjz":"2.7330","gsz":"2.7536","gszzl":"0.75","gztime":"2020-09-15 15:00"});
+  const list = res.data.trends
+  const preClose = res.data.preClose
+  const date: string = dateFormat( res.data.time * 1000, 'yyyy-MM-dd')
+  const name = res.data.name
+
+  const data = list.map(item => {
+    const [datetime, , val] = item.split(',')
+    const [,time] = datetime.split(' ')
+    return [time, val]
+  })
+
+  return {
+    name,
+    date,
+    preClose, 
+    data
+  }
+}

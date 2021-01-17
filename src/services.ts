@@ -4,32 +4,14 @@ import FundPredictEntity, { PredictStatus } from './entities/fund.entity'
 import { result, sum } from 'lodash'
 import { toFixed } from './utils'
 import { DISCOUNT_COST_RATE, ERROR_GAP, PREMIUM_COST_RATE } from './fund-data-fetch'
-const ormconfig: ConnectionOptions = {
-  type: 'mysql',
-  entities: [path.join(__dirname, 'entities/*.entity{.ts,.js}')],
-  synchronize: false,
-  port: 3306,
-  username: 'root',
-  // host: 'localhost',
-  // password: '12345678',
-  // database: 'fund_tab',
-
-  host: '34.97.207.239',  
-  password: 'MDbai1@3',
-  database: 'fund',
-}
+import { getCurrConnection } from '../ormconfig'
 
 
-let connection:Connection
+
+
 let fundPredictRepo: Repository<FundPredictEntity>
 
 
-const getCurrConnection = async()=>{
-  if(!connection) {
-    connection = await createConnection(ormconfig)
-  }
-  return connection
-}
 
 const getCurRepo = async()=>{
   const connection = await getCurrConnection()
