@@ -1,7 +1,7 @@
 import axios from 'axios'
 import fetch from 'node-fetch'
 import {JSDOM} from 'jsdom'
-import { dateFormat, race } from './utils'
+import { dateFormat, getFundDate, isIndex, race } from './utils'
 
 
 export interface FundData {
@@ -14,10 +14,10 @@ export interface FundData {
   // 单位净值，开盘价, 不会变
   unitVal?: number 
 
-  // 场内实时价格， 不会变
+  // 场内实时价格， 所有基金数据源的同一时间 不会变
   realTimeVal?: number
 
-  // 收盘净值, 只有收盘时间才有
+  // 收盘净值, 只有收盘时间才有，场外申购的净值，到晚上才会公布
   finalVal?: number
 
   
@@ -79,6 +79,8 @@ export const getEastmoneyFund = async (fundCode: string|number, dateTime: number
 
 // 集思录
 export const getJisiluFund = async (fundCode: string|number, dateTime: number = Date.now())=>{
+  // 是否是指数
+  const fundType =  isIndex(fundCode) ? 'index' : 'stock' 
   const {data} =  await axios(`https://www.jisilu.cn/data/lof/detail_fund/?___jsl=LST___t=${dateTime}`, {
     "headers": {
       "accept": "application/json, text/javascript, */*; q=0.01",
@@ -91,24 +93,20 @@ export const getJisiluFund = async (fundCode: string|number, dateTime: number = 
       "cookie": "kbz_newcookie=1; kbzw__Session=itei2rkuk8vre7q89l4d2qu165; Hm_lvt_164fe01b1433a19b507595a43bf58262=1600096188,1600184288,1600184550,1600184633; Hm_lpvt_164fe01b1433a19b507595a43bf58262=1600188222",
       "referrer": "https://www.jisilu.cn/data/lof/detail/162605",
     },
-    data: `is_search=1&fund_id=${fundCode}&fund_type=stock&rp=50&page=1`, 
+    data: `is_search=1&fund_id=${fundCode}&fund_type=${fundType}&rp=50&page=1`, 
     "method": "POST",
   })
 
-   
+  if(data.rows.length === 0) {
+    return null
+  }
   let obj: Record<string, any> = data.rows[0].cell
   if(!obj) {
     console.log(obj)
     throw new Error('集思录 json 数据为空')
   }
   
-  let curDate = dateFormat(dateTime, `yyyy-MM-dd`)
-  const  hour = Number(dateFormat(dateTime, `H`))
-
-  // 这是昨天的数据
-  if(hour >= 0 && hour <= 9) {
-    curDate = dateFormat(new Date(dateTime - 24 * 60 * 60 * 1000), `yyyy-MM-dd`)
-  }
+  let curDate = getFundDate()
   
   const fundData:FundData = {
     from: '集思录网',
@@ -155,12 +153,8 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
   
   const finalVal = finalValDom.window.document.querySelector("body  div.shouyi-b.shouyi-l.b1 .dRate")?.textContent
 
-  let curDate = dateFormat(dateTime, `MM-dd`)
-  const  hour = Number(dateFormat(dateTime, `H`))
-  // 这是昨天的数据
-  if(hour >= 0 && hour <= 9) {
-    curDate = dateFormat(new Date(dateTime - 24 * 60 * 60 * 1000), `MM-dd`)
-  }
+  let curDate = getFundDate()
+  const monthDate = dateFormat(curDate, 'MM-dd')
 
   // 基金净值价格
   const fundFinalValDate = finalValDom.window.document.querySelector("body   div.shouyi-b.shouyi-l.b1 > div.b-0")?.textContent?.match(/\d+-\d+/)?.[0]
@@ -168,8 +162,9 @@ export const getHowBuyFund = async (fundCode: string|number, dateTime: number = 
 
   const fundData:FundData = {
     from: '好买基金',
+    date: curDate,
     // 妈的，好买基金网有时候不准，是昨天的数据
-    // finalVal: (fundFinalValDate === curDate ) ?   Number(finalVal) : undefined,
+    finalVal: (fundFinalValDate === monthDate ) ?   Number(finalVal) : undefined,
     estimatedVal: Number(estimatedVal)
   }
 
@@ -333,7 +328,7 @@ export const compareFundPremium = async (fundCode: string)=>{
     if(item) {
       return true 
     } else {
-      console.error(`拉取数据超时, ${fnName[idx]}(${fundCode}) `)
+      console.error(`拉取数据超时或无该基金数据, ${fnName[idx]}(${fundCode}) `)
       return false
     }
   }) as  FundData[]

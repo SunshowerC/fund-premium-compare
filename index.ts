@@ -124,29 +124,33 @@ const echoReport = async (reportList: FundData[][])=>{
   const list = await findFundData()
   const aggr = new AggrResult(list)
 
+  // 新加进来的基金，可能 avgError[新基金] === undefined 
   const avgError = aggr.getAvgError(15)
   const rateResult = aggr.getPredictSuccessRate(new Date(), 15)
-  const premiumRateMap30 = aggr.premiumSuccessRate(30)
+  // const premiumRateMap30 = aggr.premiumSuccessRate(30)
   const premiumRateMap14 = aggr.premiumSuccessRate(15)
 
   reportList.forEach(dataList => {
     console.log('\n\n')
     console.log(dataList[0].date,dataList[0].fundName,dataList[0].fundCode )
-    const {positive, negative, times} = avgError[dataList[0].fundName!]
+    if(!avgError[dataList[0].fundName!]) {
+      console.warn(dataList[0].fundName, '暂无无统计数据', )
+    }
+    const {positive, negative, times} = avgError[dataList[0].fundName!] ?? {}
     // 最近 30 天的
-    const operateSuc30 = premiumRateMap30[dataList[0].fundName!]
+    // const operateSuc30 = premiumRateMap30[dataList[0].fundName!] ?? {}
 
-    const operateSuc14 = premiumRateMap14[dataList[0].fundName!]
+    const operateSuc14 = premiumRateMap14[dataList[0].fundName!] ?? {}
     
 
 
 
 
     dataList.forEach(item => {
-      const {positive: innerPositive, negative: innerNegative, times: innerTimes} = avgError[`${item.from},${item.fundName}`];
-      const predictSucRate = rateResult[`${item.from},${item.fundName}`];
+      const {positive: innerPositive, negative: innerNegative, times: innerTimes} = avgError[`${item.from},${item.fundName}`] ?? {};
+      const predictSucRate = rateResult[`${item.from},${item.fundName}`] ?? {};
 
-      (item as any).avgError = `${innerTimes[0]}负:${numPadEnd(innerNegative, 6) } ${innerTimes[1]}正:${numPadEnd(innerPositive, 5)}`;
+      (item as any).avgError = `${innerTimes?.[0]}负:${numPadEnd(innerNegative, 6) } ${innerTimes?.[1]}正:${numPadEnd(innerPositive, 5)}`;
       (item as any).predictSucRate = predictSucRate
     })
 
@@ -154,10 +158,10 @@ const echoReport = async (reportList: FundData[][])=>{
 
     
 
-    console.log(`基金平均负值误差(${times[0]}次)为：${negative}`)
-    console.log(`基金平均正值误差(${times[1]}次)为：${positive}`)
+    console.log(`基金平均负值误差(${times?.[0]}次)为：${negative}`)
+    console.log(`基金平均正值误差(${times?.[1]}次)为：${positive}`)
     console.log(DIVISION)
-    echoRate(operateSuc30, '最近30天')
+    // echoRate(operateSuc30, '最近30天')
     echoRate(operateSuc14, '最近14天')
     
 
@@ -227,7 +231,7 @@ async function main() {
 
 
 // analyse()
-
+console.log('开始计算...')
 main()
 
 

@@ -8,7 +8,7 @@ import { fundCodeList, FundCodeName } from "../config"
 import { getCurrConnection } from "../ormconfig"
 import DateFundEntity from "./entities/date-fund.entity"
 import { getCurDateFund } from "./fund-data-fetch"
-import { save } from "./services"
+import { dateFormat } from "./utils"
 import { calcMACD, IndexData, roundToFix } from "./utils/macd"
 
 
@@ -189,7 +189,7 @@ export class DateFund {
    */
   async txnFund(fundCode: string, date:string) {
     const map = await this.getData(fundCode, date)
-    const [sellPoint, latestPoint] = this.calcSellPoint(map, [`${date} 14:30`, `${date} 15:30`], 0.2)
+    const [sellPoint, latestPoint] = this.calcSellPoint(map, [`${date} 14:30`, `${date} 15:30`], 0.3)
 
     if(sellPoint) {
       const tIncrease = roundToFix(sellPoint.increase - latestPoint!.increase - 0.01, 3) 
@@ -213,8 +213,12 @@ export class DateFund {
 
 
 const df = new DateFund()
-// df.multipleSave(fundCodeList)
-
-fundCodeList.forEach(item => {
-  df.txnFund(item, '2021-01-18')
+df.multipleSave(fundCodeList)
+.then(()=>{
+  fundCodeList.forEach(item => {
+    df.txnFund(item, dateFormat(Date.now(), `yyyy-MM-dd`))
+    // df.txnFund(item, `2021-01-20`)
+  })
 })
+
+

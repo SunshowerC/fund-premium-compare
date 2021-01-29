@@ -57,6 +57,9 @@ export const toFixed = (num: number, len: number = 3):number=>{
 
 
 export const numPadEnd = (input:any, len: number, str='0')=>{
+  if(!input) {
+    return input
+  }
   const result:string = input.toString()
   return result.padEnd(len, str)
 }
@@ -76,4 +79,28 @@ export const race = <T>(prom: Promise<T>, timeout: number = 10000):Promise<T|und
     prom,
     sleep(timeout)
   ])
+}
+
+/**
+ * 获取基金层面上的交易日
+ */
+export const getFundDate = ()=>{
+  const now = Date.now()
+  let curDate = dateFormat(now, `yyyy-MM-dd`)
+  const  hour = Number(dateFormat(now, `H`))
+
+  // 这是昨天的数据
+  if(hour >= 0 && hour <= 9) {
+    curDate = dateFormat(new Date(now - 24 * 60 * 60 * 1000), `yyyy-MM-dd`)
+  }
+  return curDate
+}
+
+/**
+ * 是否是指数基金
+ * @param fundCode 
+ */
+export const isIndex = (fundCode:string|number) => {
+  const idxCodeList  =  ['161725']
+  return idxCodeList.includes(fundCode.toString())
 }
