@@ -47,6 +47,8 @@ export const save = async(list: Omit<FundPredictEntity, 'id'|'createDate'|'updat
 }
 
 
+
+
 /**
  * 查找所有数据
  */
@@ -59,21 +61,70 @@ export const findFundData = async (entity?: FundPredictEntity)=>{
 }
 
 export interface SucRateResult  {
+  /**
+   * 操作总次数，成功次数，成功率
+   */
   success:number, 
   total: number, 
   sucRate: number,
 
+  /** 
+   * 溢价操作
+   */
   premiumSucCount:number, 
   premiumTotal: number, 
   premiumSucRate: number,
 
+  /**
+   * 折价操作
+   */
   discountSucCount:number, 
   discountTotal: number, 
   discountSucRate: number,
 
+  /**
+   * 无需操作
+   */
   noneSucCount:number, 
   noneTotal: number, 
   noneSucRate: number,
+
+  /**
+   * 真实结果溢价折价次数
+   */
+  realPremiumCount: {
+    count: number
+    avg: number
+  }
+  realDiscountCount: {
+    count: number
+    avg: number
+  }
+  realNoneCount: number
+}
+
+enum OperateResultEnum {
+  Premium =1 ,
+  None = 0,
+  Discount = -1
+}
+
+/**
+ * 计算套利类型，以及类型的套利收益
+ * @param finalPremium 
+ */
+export const calcPremiumOrDiscount = (finalPremium: number): [OperateResultEnum, number]=>{
+  /* 溢价套利收益 */
+  if(finalPremium - PREMIUM_COST_RATE > 0){
+    return [OperateResultEnum.Premium, finalPremium - PREMIUM_COST_RATE]
+  } 
+
+  /* 折价套利收益 */
+  if(- finalPremium - DISCOUNT_COST_RATE > 0) { 
+    return [OperateResultEnum.Discount, - finalPremium - DISCOUNT_COST_RATE]
+  }
+
+  return [OperateResultEnum.None, finalPremium]
 }
 
 export class AggrResult {
@@ -320,6 +371,16 @@ export class AggrResult {
 
         noneSucCount: 0,
         noneTotal: 0,
+
+        realPremiumCount: {
+          count: 0,
+          avg: 0
+        },
+        realDiscountCount: {
+          count: 0,
+          avg: 0
+        },
+        realNoneCount: 0,
       }
 
       // 历史的 date 这个时间点，往前推 durationDays 天内的数据源预测成功率
@@ -337,6 +398,24 @@ export class AggrResult {
       // 当天是否操作成功
       let   premiumSuc = 0, discountSuc = 0, nonSuc = 0
 
+      // 真实结果
+      const [realResult, profit] = calcPremiumOrDiscount(curDateList[0].finalPremium)
+      const {realDiscountCount: curRealDiscountCount, realPremiumCount: curRealPremiumCount} = fundSucMap[fundName]
+      switch(realResult) {
+        case OperateResultEnum.Discount:
+          curRealDiscountCount.avg = (curRealDiscountCount.avg * curRealDiscountCount.count + profit) / ++curRealDiscountCount.count
+          break;
+        case OperateResultEnum.Premium: 
+          curRealPremiumCount.avg = (curRealPremiumCount.avg * curRealPremiumCount.count + profit) / ++curRealPremiumCount.count
+          break;
+        case  OperateResultEnum.None:
+          fundSucMap[fundName].realNoneCount++
+          break;
+      }
+      
+      
+
+      // 当天应该操作，和实际是否匹配
       switch(shouldDo) {
         case '溢':
           fundSucMap[fundName].premiumTotal++
@@ -357,6 +436,7 @@ export class AggrResult {
 
         case '无':
           fundSucMap[fundName].noneTotal++
+          // 如果溢价、折价套利收益过低，只有 0.1 以下，也视为 无操作成功。
           if(curDateList[0].finalPremium  <  PREMIUM_COST_RATE+0.1 && curDateList[0].finalPremium   > -DISCOUNT_COST_RATE-0.1) {
             nonSuc = 1
             fundSucMap[fundName].noneSucCount++
@@ -364,6 +444,7 @@ export class AggrResult {
           break
       }
       fundSucMap[fundName].total++
+
 
       
       if(premiumSuc || discountSuc || nonSuc) {

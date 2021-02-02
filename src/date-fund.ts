@@ -8,7 +8,7 @@ import { fundCodeList, FundCodeName } from "../config"
 import { getCurrConnection } from "../ormconfig"
 import DateFundEntity from "./entities/date-fund.entity"
 import { getCurDateFund } from "./fund-data-fetch"
-import { dateFormat } from "./utils"
+import { dateFormat, getFundDate } from "./utils"
 import { calcMACD, IndexData, roundToFix } from "./utils/macd"
 
 
@@ -213,10 +213,11 @@ export class DateFund {
 
 
 const df = new DateFund()
+const date = getFundDate()
 df.multipleSave(fundCodeList)
 .then(()=>{
   fundCodeList.forEach(item => {
-    df.txnFund(item, dateFormat(Date.now(), `yyyy-MM-dd`))
+    df.txnFund(item,date )
     // df.txnFund(item, `2021-01-20`)
   })
 })

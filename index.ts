@@ -107,15 +107,15 @@ const calcReliability = (dataList: FundData[])=>{
 
 // 打印出成功率相关数据
 const echoRate = (map: SucRateResult, preMsg: string)=>{
-  const {total, sucRate, premiumTotal, premiumSucRate, discountTotal, discountSucRate, noneTotal, noneSucRate} = map
+  const {total, sucRate, premiumTotal, premiumSucRate, discountTotal, discountSucRate, noneTotal, noneSucRate, realPremiumCount, realDiscountCount, realNoneCount} = map
 
   console.log(`${preMsg},基金总套利 ${total}次，${colors.magenta(`成功率: ${toFixed(sucRate*100)}%`)}`)
 
-  console.log(`其${colors.green(`溢价`)}套利 ${premiumTotal}次(占比${colors.red(toFixed(premiumTotal/total*100).toString())}%) ，${colors.magenta(`成功率: ${toFixed(premiumSucRate*100)}%`)}`)
+  console.log(`其${colors.green(`溢价`)}套利 ${premiumTotal}次(占比${colors.red(toFixed(premiumTotal/total*100).toString())}%) ，${colors.magenta(`成功率: ${toFixed(premiumSucRate*100)}%`)}, 真实溢价${realPremiumCount.count}次，平均套利收益:${toFixed(realPremiumCount.avg)}%`)
 
-  console.log(`其${colors.green(`折价`)}套利 ${discountTotal}次(占比${colors.blue(toFixed(discountTotal/total*100).toString())}%)，${colors.magenta(`成功率: ${toFixed(discountSucRate*100)}%`)}`)
+  console.log(`其${colors.green(`折价`)}套利 ${discountTotal}次(占比${colors.blue(toFixed(discountTotal/total*100).toString())}%)，${colors.magenta(`成功率: ${toFixed(discountSucRate*100)}%`)}, 真实折价${realDiscountCount.count}次，平均套利收益:${toFixed(realDiscountCount.avg)}%`)
 
-  console.log(`无套利操作 ${noneTotal}次(占比${toFixed(noneTotal/total*100)}%)，${colors.magenta(`成功率: ${toFixed(noneSucRate*100)}%`)}`)
+  console.log(`无套利操作 ${noneTotal}次(占比${toFixed(noneTotal/total*100)}%)，${colors.magenta(`成功率: ${toFixed(noneSucRate*100)}%`)}, 真实无套利${realNoneCount}次`)
 
   console.log(DIVISION)
 }
