@@ -8,9 +8,20 @@ import { fundCodeList, FundCodeName } from "../config"
 import { getCurrConnection } from "../ormconfig"
 import DateFundEntity from "./entities/date-fund.entity"
 import { getCurDateFund } from "./fund-data-fetch"
-import { dateFormat, getFundDate } from "./utils"
+import { dateFormat, getFundDate, sleep } from "./utils"
 import { calcMACD, IndexData, roundToFix } from "./utils/macd"
 
+
+// 红柱持续时长
+const LAST_COUNT = 1
+// 百分位
+const POSITION = 0.2 
+
+// 可交易的时间
+const TXN_TIME_RANGE = ['14:30', '15:30']
+
+// 固定时间卖出，如果没有设置，即按 macd 判断卖出
+const FIX_SELL_POINT = null // '14:50'
 
 interface JsonData {
   preClose: number
@@ -41,7 +52,9 @@ export class DateFund {
     }
   }
   
-
+  /**
+   * 保存单个基金的数据
+   */
   async saveData(fundCode: string|number) {
     await this.init()
     const {name, date, ...result} = await  getCurDateFund(fundCode)
@@ -97,6 +110,9 @@ export class DateFund {
       fundCode: fundCode.toString(),
       fundDate: date
     })
+    if(!result) {
+      return null
+    }
     if(!result?.jsonData) {
       throw new Error('json data null')
     }
@@ -109,6 +125,25 @@ export class DateFund {
     return resultMap
   }
 
+
+  /**
+   * 获取可用的交易日
+   */
+  async getValidDates(): Promise<string[]> {
+    await this.init()
+    const list = await curRepo.manager.query(`
+    select fund_date from date_fund_tab GROUP BY fund_date;
+    `)
+    
+
+    const result = list.map(item => dateFormat(item.fund_date, 'yyyy-MM-dd'))
+    
+    return result
+  }
+
+  /**
+   * 计算连续红柱/绿柱 的次数
+   */
   private countSameSideInterval(dataMap: Record<string, IndexData>, datetime: string):number {
     const list = Object.values(dataMap)
     const point = dataMap[datetime]
@@ -143,11 +178,22 @@ export class DateFund {
 
   }
 
+  /**
+   * 指定时间卖出
+   */
+  calcSellPointByTime(map: Record<string, IndexData>, time: string) {
+    const list = Object.values(map)
+    const sellPoint = list.find(item => {
+      return item.date === time
+    })
+    return [sellPoint, list[list.length - 1]]
+    
+  }
 
   /**
    * 在某个时间段内的合理卖点
    */
-  calcSellPoint(map: Record<string, IndexData>, range: [string, string], sellPosition: number) {
+  calcSellPointByMACD(map: Record<string, IndexData>, range: [string, string], sellPosition: number) {
     const list = Object.values(map)
     const filteredList = list.filter(item => {
       return item.date > range[0] && item.date < range[1]
@@ -158,20 +204,21 @@ export class DateFund {
     let sellPoint: IndexData|undefined
 
     for(let item of filteredList) {
+      // 一开始一直 红柱，
       if(item.macd > 0 ) {
         const count = this.countSameSideInterval(map, item.date)
         // 如果红柱持续了10分钟左右
-        if(count >= 10) {
+        if(count >= LAST_COUNT) {
           prepareToSell = true
         }
 
-        // 死叉快要出现
+        // 死叉快要出现 即可提前预判卖出
         if(prepareToSell && item.macdPosition < sellPosition) {
           sellPoint = item
           break
         }
       } else {
-        // 死叉出现
+        // 出现绿柱，即死叉出现
         if(prepareToSell) {
           sellPoint = item
           break
@@ -189,19 +236,36 @@ export class DateFund {
    */
   async txnFund(fundCode: string, date:string) {
     const map = await this.getData(fundCode, date)
-    const [sellPoint, latestPoint] = this.calcSellPoint(map, [`${date} 14:30`, `${date} 15:30`], 0.3)
-
-    if(sellPoint) {
-      const tIncrease = roundToFix(sellPoint.increase - latestPoint!.increase - 0.01, 3) 
-      console.log(`${FundCodeName[fundCode]} 卖点: ${sellPoint.date}, 涨幅：${sellPoint.increase}%， 收盘涨幅：${latestPoint!.increase}%, T：${tIncrease}%`)
-    } else {
-      console.log(FundCodeName[fundCode],'无最佳卖点')
+    if(!map) {
+      return undefined
     }
+
+    const [sellPoint, latestPoint] = FIX_SELL_POINT ? this.calcSellPointByTime(map , `${date} ${FIX_SELL_POINT}`) : this.calcSellPointByMACD(map, [`${date} ${TXN_TIME_RANGE[0]}`, `${date} ${TXN_TIME_RANGE[1]}`], POSITION)
+
+    if(!sellPoint) {
+      return null
+    }
+
+    return {
+      fundCode,
+      sellPoint,
+      latestPoint: latestPoint!,
+      tIncrease: roundToFix(sellPoint.increase - latestPoint!.increase - 0.01, 3) 
+    }
+
+    // if(sellPoint) {
+    //   const tIncrease = roundToFix(sellPoint.increase - latestPoint!.increase - 0.01, 3) 
+    //   console.log(`${FundCodeName[fundCode]} 卖点: ${sellPoint.date}, 涨幅：${sellPoint.increase}%， 收盘涨幅：${latestPoint!.increase}%, T：${tIncrease}%`)
+    // } else {
+    //   console.log(FundCodeName[fundCode],'无最佳卖点')
+    // }
 
   }
 
 
-
+  /**
+   * 保存多个基金的数据
+   */
   async multipleSave(fundCodes: (number|string)[]) {
     const allProm = fundCodes.map(async (item)=>{
       return this.saveData(item)
@@ -209,17 +273,91 @@ export class DateFund {
 
     return  Promise.all(allProm)
   }
+
+
+
+  async calcAvgTVal(codeList: string[]) {
+    const tValMap: Record<string, TVal> = {
+      // `code`: { totalT, avgT }
+    }
+    
+  
+    const dates = await this.getValidDates();
+    
+    const allProm = codeList.map(async code => {
+  
+      const originDaysTxnResult = await Promise.all(dates.map(dateItem => {
+        return this.txnFund(code.toString(), dateItem)
+      }))
+  
+      const daysTxnResult = originDaysTxnResult.filter(Boolean) as {
+        fundCode: string;
+        sellPoint: IndexData;
+        latestPoint: IndexData;
+        tIncrease: number;
+      }[]
+  
+  
+      const totalT = daysTxnResult.reduce<number>((result, cur) => result + cur.tIncrease, 0)
+      const avgT = roundToFix(totalT / daysTxnResult.length) 
+      
+      tValMap[code] = {
+        totalT: roundToFix(totalT),
+        avgT,
+        len: daysTxnResult.length
+      }
+
+      // if(typeof txnResult === 'undefined') {
+      //   console.error('not a transaction day', FundCodeName[item])
+      //   return 
+      // }
+  
+      // if(txnResult) {
+      //   const {fundCode, tIncrease, sellPoint, latestPoint} = txnResult
+      //   console.log(`${FundCodeName[fundCode]} 卖点: ${sellPoint.date}, 涨幅：${sellPoint.increase}%， 收盘涨幅：${latestPoint!.increase}%, T：${tIncrease}%`)
+      // } else {
+      //   console.log(FundCodeName[item],'无最佳卖点')
+      // }
+  
+    })
+
+    await Promise.all(allProm)
+
+    return tValMap
+  }
 }
 
 
-const df = new DateFund()
-const date = getFundDate()
-df.multipleSave(fundCodeList)
-.then(()=>{
-  fundCodeList.forEach(item => {
-    df.txnFund(item,date )
-    // df.txnFund(item, `2021-01-20`)
+interface TVal {
+  totalT: number, 
+  avgT : number
+  len: number
+}
+
+
+async function main() {
+
+  
+  const tValMap = await (new DateFund().calcAvgTVal(fundCodeList))
+
+
+
+  Object.entries(tValMap).forEach(([fundCode, v])=>{
+    console.log(`${FundCodeName[fundCode]} 累计做T ${v.len} 次， 总 T 收益：${v.totalT}%, 平均 T 收益：${v.avgT}%`)
   })
-})
+
+
+  await sleep(5000)
+  process.exit(0)
+}
+
+
+
+
+main()
+
+
+
+
 
 

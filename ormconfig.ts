@@ -5,13 +5,13 @@ export const ormconfig: ConnectionOptions = {
   type: 'mysql',
   entities: [path.join(__dirname, 'src/entities/*.entity{.ts,.js}')],
   synchronize: false,
-  port: 3306,
+  port: 9906,
   username: 'root',
   // host: 'localhost',
   // password: '12345678',
   // database: 'fund_tab',
 
-  host: '34.97.207.239',  
+  host: '34.97.246.194',  
   password: 'MDbai1@3',
   database: 'fund',
 }

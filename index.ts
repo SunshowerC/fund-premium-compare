@@ -108,7 +108,10 @@ const calcReliability = (dataList: FundData[])=>{
 // 打印出成功率相关数据
 const echoRate = (map: SucRateResult, preMsg: string)=>{
   const {total, sucRate, premiumTotal, premiumSucRate, discountTotal, discountSucRate, noneTotal, noneSucRate, realPremiumCount, realDiscountCount, realNoneCount} = map
-
+  if(!realPremiumCount) {
+    console.log('暂无数据')
+    return false
+  }
   console.log(`${preMsg},基金总套利 ${total}次，${colors.magenta(`成功率: ${toFixed(sucRate*100)}%`)}`)
 
   console.log(`其${colors.green(`溢价`)}套利 ${premiumTotal}次(占比${colors.red(toFixed(premiumTotal/total*100).toString())}%) ，${colors.magenta(`成功率: ${toFixed(premiumSucRate*100)}%`)}, 真实溢价${realPremiumCount.count}次，平均套利收益:${toFixed(realPremiumCount.avg)}%`)
