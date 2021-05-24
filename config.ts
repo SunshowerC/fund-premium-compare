@@ -9,7 +9,7 @@ export enum FundCodeName {
   '万家优选' = 161903,
   '兴全合宜' = 163417,
   '兴全和润' = 163406,
-  '白酒基金' = 161725,
+  // '白酒基金' = 161725,
 }
 
 export const fundCodeList:string[] = fundCode ? [fundCode] : Object.values(FundCodeName).filter(item => !isNaN(item as any)) as string[]

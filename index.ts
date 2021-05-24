@@ -127,11 +127,13 @@ const echoReport = async (reportList: FundData[][])=>{
   const list = await findFundData()
   const aggr = new AggrResult(list)
 
+  const currentDays = 14
+
   // 新加进来的基金，可能 avgError[新基金] === undefined 
-  const avgError = aggr.getAvgError(15)
-  const rateResult = aggr.getPredictSuccessRate(new Date(), 15)
+  const avgError = aggr.getAvgError(currentDays)
+  const rateResult = aggr.getPredictSuccessRate(new Date(), currentDays)
   // const premiumRateMap30 = aggr.premiumSuccessRate(30)
-  const premiumRateMap14 = aggr.premiumSuccessRate(15)
+  const premiumRateMap14 = aggr.premiumSuccessRate(currentDays)
 
   reportList.forEach(dataList => {
     console.log('\n\n')
@@ -165,7 +167,7 @@ const echoReport = async (reportList: FundData[][])=>{
     console.log(`基金平均正值误差(${times?.[1]}次)为：${positive}`)
     console.log(DIVISION)
     // echoRate(operateSuc30, '最近30天')
-    echoRate(operateSuc14, '最近14天')
+    echoRate(operateSuc14, `最近${currentDays}天`)
     
 
 
@@ -234,7 +236,7 @@ async function main() {
 
 
 // analyse()
-console.log('开始计算...')
+console.log('\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n开始计算...')
 main()
 
 
