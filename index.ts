@@ -1,5 +1,5 @@
 import colors from 'colors/safe'
-import { fundCodeList } from './config';
+import { fundCodeList, FundCodeName } from './config';
 import FundPredictEntity from "./src/entities/fund.entity";
 /**
  * 富国天惠成长混合   161005
@@ -137,7 +137,10 @@ const echoReport = async (reportList: FundData[][])=>{
 
   reportList.forEach(dataList => {
     console.log('\n\n')
+
     console.log(dataList[0].date,dataList[0].fundName,dataList[0].fundCode )
+
+    
     if(!avgError[dataList[0].fundName!]) {
       console.warn(dataList[0].fundName, '暂无无统计数据', )
     }
@@ -172,6 +175,10 @@ const echoReport = async (reportList: FundData[][])=>{
 
 
     console.log(colors.red(`本次套利可信度: ${reliability}`))
+    if(dataList[0].fundCode === FundCodeName['兴全合宜'].toString()) {
+      console.log(colors.bgRed('=========================持有一个月才能折价套利啊啊啊====================================='))
+    }
+
     saveData(dataList)
 
     dataList.unshift({
