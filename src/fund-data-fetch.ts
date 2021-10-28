@@ -60,6 +60,7 @@ export const getEastmoneyFund = async (fundCode: string|number, dateTime: number
   try {
     obj = JSON.parse( data.slice(8,-2))
   } catch (e) {
+    console.log('data', data)
     throw new Error('getEastmoneyFund json 解析错误')
   }
    

@@ -11,7 +11,7 @@ export const ormconfig: ConnectionOptions = {
   // host: 'localhost',
   // password: '12345678',
 
-  host: '34.97.173.215',  
+  host: '34.97.46.180',  
   port: 8806,
   password: 'MDbai1@3',
 
