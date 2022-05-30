@@ -13,7 +13,9 @@ export const ormconfig: ConnectionOptions = {
 
   // host: '34.97.46.180',
   // host: '34.97.27.183',    
-  host: '34.97.112.176',  
+  // host: '34.97.112.176',  
+  host: '34.146.111.141',  
+
   port: 3306,
   password: 'bai1@3',
 
